@@ -1,1 +1,2 @@
-export declare const Greeter: (name: string) => string;
+export * from './jsonrpc-websocket';
+export * from './jsonrpc.model';
