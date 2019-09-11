@@ -67,7 +67,7 @@ export class JsonRpcWebsocket {
 					data: event
 				};
 
-				this.errorCallback(error);
+				this.callOnError(error);
 			}
 		};
 
@@ -224,7 +224,7 @@ export class JsonRpcWebsocket {
 	private handleResponse(response: JsonRpcResponse) {
 		const activeRequest = this.pendingRequests[response.id];
 		if (activeRequest === void 0) {
-			this.errorCallback({
+			this.callOnError({
 				code: JsonRpcErrorCodes.INTERNAL_ERROR,
 				message: `Received a response with id ${response.id}, which does not match any requests made by this client`
 			});
@@ -255,7 +255,7 @@ export class JsonRpcWebsocket {
 
 	private handleError(code: number, message: string, requestId?: number) {
 		const error: JsonRpcError = {code: code, message: message};
-		this.errorCallback(error);
+		this.callOnError(error);
 		if (requestId) {
 			this.respondError(requestId, error);
 		}
@@ -293,7 +293,7 @@ export class JsonRpcWebsocket {
 		}, this.requestTimeoutMs);
 	}
 
-	private errorCallback(error: JsonRpcError) {
+	private callOnError(error: JsonRpcError) {
 		if (this.onError != void 0) {
 			this.onError(error);
 		}
