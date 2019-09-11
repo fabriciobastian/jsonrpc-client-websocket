@@ -1,5 +1,4 @@
 import { JsonRpcError, JsonRpcRequest, JsonRpcResponse, JsonRpcErrorCodes } from './jsonrpc.model';
-import { ReplaySubject } from 'rxjs';
 import { DeferredPromise } from './deferred-promise';
 
 export enum WebsocketReadyStates {
@@ -15,10 +14,12 @@ interface IPendingRequest {
 	timeout: number;
 }
 
+type ErrorCallback = (error: JsonRpcError) => void;
+
 export class JsonRpcWebsocket {
 	public jsonRpcVersion = '2.0';
 
-	private websocket: WebSocket | undefined;
+	private websocket: WebSocket;
 
 	private requestId = 0;
 	private pendingRequests: {
@@ -29,7 +30,7 @@ export class JsonRpcWebsocket {
 		[name: string]: (...args: any) => any
 	};
 
-	public onError$ = new ReplaySubject<JsonRpcError>(1);
+	public onError: ErrorCallback;
 
 	constructor(private url: string, private requestTimeoutMs: number) {
 		this.pendingRequests = {};
@@ -65,7 +66,8 @@ export class JsonRpcWebsocket {
 					message: event.reason,
 					data: event
 				};
-				this.onError$.next(error);
+
+				this.errorCallback(error);
 			}
 		};
 
@@ -92,7 +94,7 @@ export class JsonRpcWebsocket {
 	}
 
 	public call(method: string, params?: any): Promise<JsonRpcResponse> {
-		if (this.state !== WebsocketReadyStates.OPEN || !this.websocket) {
+		if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
 			return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: 'The websocket is not opened' });
 		}
 
@@ -113,7 +115,7 @@ export class JsonRpcWebsocket {
 	}
 
 	public notify(method: string, params?: any) {
-		if (this.state !== WebsocketReadyStates.OPEN || !this.websocket) {
+		if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
 			throw new Error('The websocket is not opened');
 		}
 
@@ -139,7 +141,7 @@ export class JsonRpcWebsocket {
 	}
 
 	private respond(id: number, result?: any, error?: JsonRpcError) {
-		if (this.state !== WebsocketReadyStates.OPEN || !this.websocket) {
+		if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
 			throw new Error('The websocket is not opened');
 		}
 
@@ -222,7 +224,7 @@ export class JsonRpcWebsocket {
 	private handleResponse(response: JsonRpcResponse) {
 		const activeRequest = this.pendingRequests[response.id];
 		if (activeRequest === void 0) {
-			this.onError$.next({
+			this.errorCallback({
 				code: JsonRpcErrorCodes.INTERNAL_ERROR,
 				message: `Received a response with id ${response.id}, which does not match any requests made by this client`
 			});
@@ -253,7 +255,7 @@ export class JsonRpcWebsocket {
 
 	private handleError(code: number, message: string, requestId?: number) {
 		const error: JsonRpcError = {code: code, message: message};
-		this.onError$.next(error);
+		this.errorCallback(error);
 		if (requestId) {
 			this.respondError(requestId, error);
 		}
@@ -289,6 +291,12 @@ export class JsonRpcWebsocket {
 
 			activeRequest.response.reject(response);
 		}, this.requestTimeoutMs);
+	}
+
+	private errorCallback(error: JsonRpcError) {
+		if (this.onError != void 0) {
+			this.onError(error);
+		}
 	}
 
 	private getRequestId() {

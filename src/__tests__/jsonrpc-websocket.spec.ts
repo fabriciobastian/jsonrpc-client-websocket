@@ -229,10 +229,10 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 
 		const errorPromise = new DeferredPromise<boolean>();
 		let actualError = null;
-		websocket.onError$.subscribe((error: JsonRpcError) => {
+		websocket.onError = (error: JsonRpcError) => {
 			errorPromise.resolve(true);
 			actualError = error;
-		});
+		};
 
 		server.send(request);
 
