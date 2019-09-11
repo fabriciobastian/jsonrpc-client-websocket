@@ -254,7 +254,7 @@ export class JsonRpcWebsocket {
 	}
 
 	private handleError(code: number, message: string, requestId?: number) {
-		const error: JsonRpcError = {code: code, message: message};
+		const error: JsonRpcError = { code: code, message: message };
 		this.callOnError(error);
 		if (requestId) {
 			this.respondError(requestId, error);
@@ -303,7 +303,7 @@ export class JsonRpcWebsocket {
 		return ++this.requestId;
 	}
 
-	private hasProperty (object: any, propertyName: string) {
+	private hasProperty(object: any, propertyName: string) {
 		return Object.prototype.hasOwnProperty.call(object, propertyName);
 	}
 }
