@@ -1,3 +1,5 @@
+/* tslint:disable:max-classes-per-file */
+
 // See https://www.jsonrpc.org/specification for the protocol details
 
 export enum JsonRpcErrorCodes {
@@ -12,21 +14,21 @@ export enum JsonRpcErrorCodes {
 }
 
 export class JsonRpcError {
-	code: number;
-	message: string;
-	data?: any;
+	public code: number;
+	public message: string;
+	public data?: any;
 }
 
 export class JsonRpcResponse {
-	jsonrpc: string; // Protocol version
-	id: number;
-	result?: any;
-	error?: JsonRpcError;
+	public jsonrpc: string; // Protocol version
+	public id: number;
+	public result?: any;
+	public error?: JsonRpcError;
 }
 
 export class JsonRpcRequest {
-	jsonrpc: string;
-	id?: number;
-	method: string;
-	params?: any;
+	public jsonrpc: string;
+	public id?: number;
+	public method: string;
+	public params?: any;
 }

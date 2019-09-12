@@ -1,5 +1,5 @@
-import { JsonRpcError, JsonRpcRequest, JsonRpcResponse, JsonRpcErrorCodes } from './jsonrpc.model';
 import { DeferredPromise } from './deferred-promise';
+import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from './jsonrpc.model';
 
 export enum WebsocketReadyStates {
 	CONNECTING = 0,
@@ -61,8 +61,8 @@ export class JsonRpcWebsocket {
 			if (event.code !== 1000) { // 1000 = normal closure
 				const error: JsonRpcError = {
 					code: event.code,
-					message: event.reason,
-					data: event
+					data: event,
+					message: event.reason
 				};
 
 				this.callOnError(error);
@@ -97,10 +97,10 @@ export class JsonRpcWebsocket {
 		}
 
 		const request: JsonRpcRequest = {
-			jsonrpc: this.jsonRpcVersion,
 			id: this.getRequestId(),
-			method: method,
-			params: params
+			jsonrpc: this.jsonRpcVersion,
+			method,
+			params
 		};
 
 		try {
@@ -119,8 +119,8 @@ export class JsonRpcWebsocket {
 
 		const request: JsonRpcRequest = {
 			jsonrpc: this.jsonRpcVersion,
-			method: method,
-			params: params
+			method,
+			params
 		};
 
 		try {
@@ -148,10 +148,10 @@ export class JsonRpcWebsocket {
 		}
 
 		const response: JsonRpcResponse = {
+			error,
+			id,
 			jsonrpc: this.jsonRpcVersion,
-			id: id,
-			result: result,
-			error: error
+			result
 		};
 
 		try {
@@ -233,12 +233,12 @@ export class JsonRpcWebsocket {
 
 		if (this.hasProperty(response, 'result') && this.hasProperty(response, 'error')) {
 			const errorResponse: JsonRpcResponse = {
-				jsonrpc: this.jsonRpcVersion,
-				id: activeRequest.request.id,
 				error: {
 					code: JsonRpcErrorCodes.INVALID_RESPONSE,
 					message: `Invalid response. Either result or error must be set, but not both. ${JSON.stringify(response)}`
-				}
+				},
+				id: activeRequest.request.id,
+				jsonrpc: this.jsonRpcVersion
 			};
 			activeRequest.response.reject(errorResponse);
 			return;
@@ -252,7 +252,7 @@ export class JsonRpcWebsocket {
 	}
 
 	private handleError(code: number, message: string, requestId?: number) {
-		const error: JsonRpcError = { code: code, message: message };
+		const error: JsonRpcError = { code, message };
 		this.callOnError(error);
 		if (requestId) {
 			this.respondError(requestId, error);
@@ -262,8 +262,8 @@ export class JsonRpcWebsocket {
 	private createPendingRequest(request): Promise<JsonRpcResponse> {
 		const response = new DeferredPromise<JsonRpcResponse>();
 		this.pendingRequests[request.id] = {
-			request: request,
-			response: response,
+			request,
+			response,
 			timeout: this.setupRequestTimeout(request.id)
 		};
 		return response.asPromise();
@@ -277,12 +277,12 @@ export class JsonRpcWebsocket {
 			}
 
 			const response: JsonRpcResponse = {
-				jsonrpc: this.jsonRpcVersion,
-				id: activeRequest.request.id,
 				error: {
 					code: JsonRpcErrorCodes.REQUEST_TIMEOUT,
 					message: `Request ${activeRequest.request.id} exceeded the maximum time of ${this.requestTimeoutMs}ms and was aborted`
-				}
+				},
+				id: activeRequest.request.id,
+				jsonrpc: this.jsonRpcVersion
 			};
 
 			delete this.pendingRequests[requestId];
@@ -292,7 +292,7 @@ export class JsonRpcWebsocket {
 	}
 
 	private callOnError(error: JsonRpcError) {
-		if (this.onError != void 0) {
+		if (this.onError !== void 0) {
 			this.onError(error);
 		}
 	}

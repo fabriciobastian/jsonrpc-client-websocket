@@ -1,7 +1,7 @@
 // tslint:disable: max-line-length
 import { JsonRpcWebsocket, WebsocketReadyStates } from '../jsonrpc-websocket';
 import { WS } from 'jest-websocket-mock';
-import { JsonRpcRequest, JsonRpcResponse, JsonRpcError, JsonRpcErrorCodes } from '../jsonrpc.model';
+import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse, } from '../jsonrpc.model';
 import { DeferredPromise } from '../deferred-promise';
 
 const testUrl = 'ws://localhost:1234';
