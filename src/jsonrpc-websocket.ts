@@ -30,9 +30,7 @@ export class JsonRpcWebsocket {
 		[name: string]: (...args: any) => any
 	};
 
-	public onError: ErrorCallback;
-
-	constructor(private url: string, private requestTimeoutMs: number) {
+	constructor(private url: string, private requestTimeoutMs: number, private onError?: ErrorCallback) {
 		this.pendingRequests = {};
 		this.rpcMethods = {};
 	}
@@ -282,7 +280,7 @@ export class JsonRpcWebsocket {
 				jsonrpc: this.jsonRpcVersion,
 				id: activeRequest.request.id,
 				error: {
-					code: JsonRpcErrorCodes.INTERNAL_ERROR,
+					code: JsonRpcErrorCodes.REQUEST_TIMEOUT,
 					message: `Request ${activeRequest.request.id} exceeded the maximum time of ${this.requestTimeoutMs}ms and was aborted`
 				}
 			};

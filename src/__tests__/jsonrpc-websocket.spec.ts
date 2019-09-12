@@ -42,16 +42,16 @@ function createRequest(method: string, params?: any, id?: number): JsonRpcReques
 	};
 }
 
-async function createServerAndJsonSocketAndConnect(): Promise<[WS, JsonRpcWebsocket]> {
+async function createServerAndJsonSocketAndConnect(onError?: (error: JsonRpcError) => void): Promise<[WS, JsonRpcWebsocket]> {
 	const server = new WS(testUrl, {jsonProtocol: true});
-	const websocket = new JsonRpcWebsocket(testUrl, requestTimeoutMs);
+	const websocket = new JsonRpcWebsocket(testUrl, requestTimeoutMs, onError);
 	await websocket.open();
 	await server.connected;
 	return [server, websocket];
 }
 
 function closeSocketAndRestartServer(websocket: JsonRpcWebsocket): void {
-	if (websocket.state === WebsocketReadyStates.OPEN) {
+	if (!!(websocket) && websocket.state === WebsocketReadyStates.OPEN) {
 		websocket.close();
 	}
 	WS.clean();
@@ -123,7 +123,7 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
 
 	it('should send request and timeout, if no response is provided', async() => {
 		const expectedRequest = createRequest('test', ['any'], requestId);
-		const expectedError = createErrorResponse(JsonRpcErrorCodes.INTERNAL_ERROR, `Request 1 exceeded the maximum time of ${requestTimeoutMs}ms and was aborted`);
+		const expectedError = createErrorResponse(JsonRpcErrorCodes.REQUEST_TIMEOUT, `Request 1 exceeded the maximum time of ${requestTimeoutMs}ms and was aborted`);
 
 		await expect(websocket.call('test', ['any'])).rejects.toEqual(expectedError);
 		await expect(server).toReceiveMessage(expectedRequest);
@@ -164,6 +164,25 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
 
 		await expect(server).toReceiveMessage(expectedRequest);
 		server.send(invalidResponse);
+	});
+
+	it('should handle error responses', async(done) => {
+		const expectedRequest = createRequest('test', ['any'], requestId);
+
+		const expectedErrorResponse: JsonRpcResponse = {
+			jsonrpc: websocket.jsonRpcVersion,
+			id: requestId,
+			error: { code: JsonRpcErrorCodes.INVALID_PARAMS, message: 'Invalid parameters'},
+		};
+
+		websocket.call('test', ['any'])
+			.catch((actualErrorResponse) => {
+				expect(actualErrorResponse).toEqual(expectedErrorResponse);
+				done();
+			});
+
+		await expect(server).toReceiveMessage(expectedRequest);
+		server.send(expectedErrorResponse);
 	});
 });
 
@@ -222,24 +241,6 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 		await expect(server).toReceiveMessage(expectedResponse);
 	});
 
-	it('should report error if not a request nor a response (id is missing)', async() => {
-		const request = { jsonrpc: websocket.jsonRpcVersion, something: 'else' };
-
-		const expectedError = createError(JsonRpcErrorCodes.INVALID_REQUEST, `Received unknown data: ${JSON.stringify(request)}`);
-
-		const errorPromise = new DeferredPromise<boolean>();
-		let actualError = null;
-		websocket.onError = (error: JsonRpcError) => {
-			errorPromise.resolve(true);
-			actualError = error;
-		};
-
-		server.send(request);
-
-		await expect(errorPromise.asPromise()).resolves.toBeTruthy();
-		expect(actualError).toEqual(expectedError);
-	});
-
 	it('should respond with an error if the protocol version does not match the expected version', async() => {
 		const version = '1.0';
 
@@ -253,3 +254,34 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 	});
 });
 
+describe('JSON RPC 2.0 Websocket reports on error calback', () => {
+	let websocket;
+	let server;
+	let callbackErrorPromise: DeferredPromise<boolean>;
+	let callbackError: JsonRpcError;
+
+	beforeEach(async() => {
+		callbackErrorPromise = new DeferredPromise<boolean>();
+		[server, websocket] = await createServerAndJsonSocketAndConnect(
+			(error: JsonRpcError) => {
+				callbackErrorPromise.resolve(true);
+				callbackError = error;
+			}
+		);
+	});
+
+	afterEach(() => {
+		closeSocketAndRestartServer(websocket);
+	});
+
+	it('should report error if not a request nor a response (id is missing)', async() => {
+		const request = { jsonrpc: websocket.jsonRpcVersion, something: 'else' };
+
+		const expectedError = createError(JsonRpcErrorCodes.INVALID_REQUEST, `Received unknown data: ${JSON.stringify(request)}`);
+
+		server.send(request);
+
+		await expect(callbackErrorPromise.asPromise()).resolves.toBeTruthy();
+		expect(callbackError).toEqual(expectedError);
+	});
+});
