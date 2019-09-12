@@ -45,7 +45,7 @@ or a method `log(message: string)`
     websocket.notify('log', ['a log message']);
 ```
 
-## Define RPC methods
+## Define RPC method
 
 ```typescript
     websocket.on('sum', (a: number, b: number) => {
