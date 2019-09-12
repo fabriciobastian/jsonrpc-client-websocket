@@ -11,7 +11,6 @@ A websocket client that implements the JSON RPC 2.0 protocol
         websocketUrl,
         requestTimeoutMs,
         (error: JsonRpcError) => { /*handle error*/ });
-    websocket.onError = 
     await websocket.open();
 ```
 Requests that do not receive a response within the specified timeout will fail with an REQUEST_TIMEOUT code.
