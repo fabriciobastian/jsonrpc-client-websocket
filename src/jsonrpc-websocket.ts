@@ -14,7 +14,7 @@ interface IPendingRequest {
 	timeout: number;
 }
 
-type ErrorCallback = (error: JsonRpcError) => void;
+export type ErrorCallback = (error: JsonRpcError) => void;
 
 export class JsonRpcWebsocket {
 	public jsonRpcVersion = '2.0';

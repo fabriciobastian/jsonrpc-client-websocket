@@ -1,5 +1,5 @@
 // tslint:disable: max-line-length
-import { JsonRpcWebsocket, WebsocketReadyStates } from '../jsonrpc-websocket';
+import { ErrorCallback, JsonRpcWebsocket, WebsocketReadyStates } from '../jsonrpc-websocket';
 import { WS } from 'jest-websocket-mock';
 import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse, } from '../jsonrpc.model';
 import { DeferredPromise } from '../deferred-promise';
@@ -42,7 +42,7 @@ function createRequest(method: string, params?: any, id?: number): JsonRpcReques
 	};
 }
 
-async function createServerAndJsonSocketAndConnect(onError?: (error: JsonRpcError) => void): Promise<[WS, JsonRpcWebsocket]> {
+async function createServerAndJsonSocketAndConnect(onError?: ErrorCallback): Promise<[WS, JsonRpcWebsocket]> {
 	const server = new WS(testUrl, {jsonProtocol: true});
 	const websocket = new JsonRpcWebsocket(testUrl, requestTimeoutMs, onError);
 	await websocket.open();
