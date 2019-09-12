@@ -1,6 +1,6 @@
 {
   "name": "jsonrpc-client-websocket",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A websocket client that implements the JSON RPC 2.0 protocol",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
