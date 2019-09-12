@@ -27,7 +27,7 @@ if an rpc method is called with an invalid number of parameters, etc...
 
 ## Call RPC method or send notification
 
-Considering that the server has a method sum(a: int, b: int)
+Considering that the server has a method `sum(a: int, b: int)`
 
 ```typescript
     websocket.call('sum', [1,2])
@@ -39,13 +39,13 @@ Considering that the server has a method sum(a: int, b: int)
         });
 ```
 
-or a method log(message: string)
+or a method `log(message: string)`
 
 ```typescript
     websocket.notify('log', ['a log message']);
 ```
 
-# Define RPC methods
+## Define RPC method
 
 ```typescript
     websocket.on('sum', (a: number, b: number) => {
