@@ -51,4 +51,5 @@ or a method `log(message: string)`
         return a + b;
     });
 ```
+For now, only positional parameter calls are supported (named arguments is not supported).
 
