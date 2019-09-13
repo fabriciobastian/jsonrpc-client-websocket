@@ -170,7 +170,7 @@ export class JsonRpcWebsocket {
 			return;
 		}
 
-		const isResponse = !!(data) && (this.hasProperty(data, 'result') || this.hasProperty(data, 'error') && this.hasProperty(data, 'id'));
+		const isResponse = !!(data) && this.hasProperty(data, 'id') && (this.hasProperty(data, 'result') || this.hasProperty(data, 'error'));
 		const isRequest = !!(data) && this.hasProperty(data, 'method');
 
 		const requestId = isRequest && data.id ? data.id : void 0;

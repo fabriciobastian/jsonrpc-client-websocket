@@ -21,14 +21,14 @@ export class JsonRpcError {
 
 export class JsonRpcResponse {
 	public jsonrpc: string; // Protocol version
-	public id: number;
+	public id: number | any;
 	public result?: any;
 	public error?: JsonRpcError;
 }
 
 export class JsonRpcRequest {
 	public jsonrpc: string;
-	public id?: number;
+	public id?: number | any;
 	public method: string;
 	public params?: any;
 }

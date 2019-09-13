@@ -1,7 +1,7 @@
 {
   "name": "jsonrpc-client-websocket",
-  "version": "1.0.4",
-  "description": "A websocket client that implements the JSON RPC 2.0 protocol",
+  "version": "1.0.5",
+  "description": "A simple JSON RPC 2.0 websocket client",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -28,8 +28,10 @@
   "homepage": "https://github.com/fabriciobastian/jsonrpc-client-websocket#readme",
   "keywords": [
     "websocket",
-    "jsonrpc2.0",
-    "client"
+    "jsonrpc",
+    "client",
+    "json",
+    "rpc"
   ],
   "author": "Fabricio Bastian",
   "license": "MIT",
