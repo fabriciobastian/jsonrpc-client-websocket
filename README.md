@@ -2,7 +2,7 @@
 
 # jsonrpc-client-websocket
 
-A websocket client that implements the JSON RPC 2.0 protocol
+A simple JSON RPC 2.0 client over websockets
 
 ## Open connection
 
