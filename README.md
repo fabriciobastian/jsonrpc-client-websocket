@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)]() [![Github downloads](https://img.shields.io/github/downloads/fabriciobastian/jsonrpc-client-websocket/total.svg)]() [![NPM downloads](https://img.shields.io/npm/dm/jsonrpc-client-websocket.svg)]()
+
 # jsonrpc-client-websocket
 
 A websocket client that implements the JSON RPC 2.0 protocol
