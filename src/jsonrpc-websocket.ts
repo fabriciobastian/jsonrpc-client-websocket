@@ -1,6 +1,6 @@
+import * as getParameterNames from 'get-parameter-names';
 import { DeferredPromise } from './deferred-promise';
 import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from './jsonrpc.model';
-import * as getParameterNames from 'get-parameter-names';
 
 export enum WebsocketReadyStates {
 	CONNECTING = 0,
