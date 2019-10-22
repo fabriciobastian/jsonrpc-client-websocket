@@ -1,5 +1,6 @@
 import { DeferredPromise } from './deferred-promise';
 import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from './jsonrpc.model';
+import * as getParameterNames from 'get-parameter-names';
 
 export enum WebsocketReadyStates {
 	CONNECTING = 0,
@@ -202,13 +203,13 @@ export class JsonRpcWebsocket {
 			return;
 		}
 
-		const requestParams = (request.params) ? request.params : [];
-		const nbrReqParams = requestParams.length;
-
-		if (method.length !== nbrReqParams) {
+		let requestParams = [];
+		try {
+			requestParams = this.getRequestParams(method, request);
+		} catch(error) {
 			this.handleError(
 				JsonRpcErrorCodes.INVALID_PARAMS,
-				`Invalid parameters. Method \'${request.method}\' expects ${method.length} parameters, but got ${nbrReqParams}`,
+				error.message,
 				request.id);
 			return;
 		}
@@ -217,6 +218,35 @@ export class JsonRpcWebsocket {
 		if (request.id) {
 			this.respondOk(request.id, result ? result : {});
 		}
+	}
+
+	private getRequestParams(method: (...args: any) => any, request: JsonRpcRequest): any[] {
+		let requestParams = [];
+		if (request.params) {
+			if (request.params instanceof Array) {
+				if (method.length !== request.params.length) {
+					throw new Error(`Invalid parameters. Method \'${request.method}\' expects ${method.length} parameters, but got ${request.params.length}`);
+				}
+				requestParams = request.params;
+			} else if (request.params instanceof Object) {
+				const parameterNames = getParameterNames(method);
+
+				if (method.length !== Object.keys(request.params).length) {
+					throw new Error(`Invalid parameters. Method \'${request.method}\' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`);
+				}
+
+				parameterNames.forEach(paramName => {
+					const paramValue = request.params[paramName];
+					if (!paramValue) {
+						throw new Error(`Invalid parameters. Method \'${request.method}\' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`);
+					}
+					requestParams.push(paramValue);
+				});
+			} else {
+				throw new Error(`Invalid parameters. Expected array or object, but got ${typeof(request.params)}`);
+			}
+		}
+		return requestParams;
 	}
 
 	private handleResponse(response: JsonRpcResponse) {

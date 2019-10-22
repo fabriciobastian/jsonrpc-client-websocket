@@ -26,10 +26,11 @@ if an rpc method is called with an invalid number of parameters, etc...
 websocket.close();
 ```
 
-## Call RPC method or send notification
+## Call RPC method
 
 Considering that the server has a method `sum(a: int, b: int)`
 
+### with positional parameters
 ```typescript
 websocket.call('sum', [1,2])
     .then((response) => {
@@ -39,8 +40,20 @@ websocket.call('sum', [1,2])
         // handle error
     });
 ```
+### with named parameters
+```typescript
+websocket.call('sum', {b: 1, a: 2})
+    .then((response) => {
+        // handle response
+    })
+    .catch((error) => {
+        // handle error
+    });
+```
 
-or a method `log(message: string)`
+## Send notification
+
+Considering that the server has a method `log(message: string)`
 
 ```typescript
 websocket.notify('log', ['a log message']);
@@ -53,5 +66,4 @@ websocket.on('sum', (a: number, b: number) => {
     return a + b;
 });
 ```
-For now, only positional parameter calls are supported (named arguments is not supported).
 

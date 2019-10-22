@@ -46,5 +46,7 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.6.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "get-parameter-names": "^0.3.0"
+  }
 }
