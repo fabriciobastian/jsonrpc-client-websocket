@@ -31,6 +31,7 @@ websocket.close();
 Considering that the server has a method `sum(a: int, b: int)`
 
 ### with positional parameters
+
 ```typescript
 websocket.call('sum', [1,2])
     .then((response) => {
@@ -40,7 +41,9 @@ websocket.call('sum', [1,2])
         // handle error
     });
 ```
+
 ### with named parameters
+
 ```typescript
 websocket.call('sum', {b: 1, a: 2})
     .then((response) => {
@@ -66,4 +69,3 @@ websocket.on('sum', (a: number, b: number) => {
     return a + b;
 });
 ```
-
