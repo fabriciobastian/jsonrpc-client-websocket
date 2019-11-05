@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/6ogi69aumjjq602i?svg=true)](https://ci.appveyor.com/project/fabriciobastian/jsonrpc-client-websocket) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket)
+[![Travis build status](https://travis-ci.com/fabriciobastian/jsonrpc-client-websocket.svg?branch=master)](https://travis-ci.com/fabriciobastian/jsonrpc-client-websocket) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket) 
 
 # jsonrpc-client-websocket
 
