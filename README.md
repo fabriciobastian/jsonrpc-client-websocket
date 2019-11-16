@@ -23,7 +23,7 @@ if an rpc method is called with an invalid number of parameters, etc...
 ## Close connection
 
 ```typescript
-websocket.close();
+await websocket.close();
 ```
 
 ## Call RPC method
@@ -69,3 +69,4 @@ websocket.on('sum', (a: number, b: number) => {
     return a + b;
 });
 ```
+The defined RPC methods can also be called with both positional and named parameters.

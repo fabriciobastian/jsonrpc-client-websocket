@@ -50,9 +50,9 @@ async function createServerAndJsonSocketAndConnect(onError?: ErrorCallback): Pro
 	return [server, websocket];
 }
 
-function closeSocketAndRestartServer(websocket: JsonRpcWebsocket): void {
+async function closeSocketAndRestartServer(websocket: JsonRpcWebsocket): Promise<void> {
 	if (!!(websocket) && websocket.state === WebsocketReadyStates.OPEN) {
-		websocket.close();
+		await websocket.close();
 	}
 	WS.clean();
 }
@@ -75,8 +75,8 @@ describe('JSON RPC 2.0 Websocket manage connection', () => {
 		[server, websocket] = await createServerAndJsonSocketAndConnect();
 	});
 
-	afterEach(() => {
-		closeSocketAndRestartServer(websocket);
+	afterEach(async() => {
+		await closeSocketAndRestartServer(websocket);
 	});
 
 	it('should create the socket', () => {
@@ -109,8 +109,8 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
 		[server, websocket] = await createServerAndJsonSocketAndConnect();
 	});
 
-	afterEach(() => {
-		closeSocketAndRestartServer(websocket);
+	afterEach(async() => {
+		await closeSocketAndRestartServer(websocket);
 	});
 
 	it('should send notification', async() => {
@@ -194,8 +194,8 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 		[server, websocket] = await createServerAndJsonSocketAndConnect();
 	});
 
-	afterEach(() => {
-		closeSocketAndRestartServer(websocket);
+	afterEach(async() => {
+		await closeSocketAndRestartServer(websocket);
 	});
 
 	it('should call the registered method with positional parameters and respond the request', async() => {
@@ -241,7 +241,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 		await expect(server).toReceiveMessage(expectedResponse);
 	});
 
-	it('should repond with an error when the amount of positional parameters on the request do not match the amount of parameters in the registered method', async() => {
+	it('should respond with an error when the amount of positional parameters on the request do not match the amount of parameters in the registered method', async() => {
 		const request = createRequest('sum', [2, 3, 4], requestId);
 		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_PARAMS,
 			`Invalid parameters. Method \'${request.method}\' expects 2 parameters, but got ${request.params.length}`);
@@ -257,7 +257,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 		await expect(server).toReceiveMessage(expectedResponse);
 	});
 
-	it('should repond with an error when the parameter names on the request do not match the names of the parameters in the registered method', async() => {
+	it('should respond with an error when the parameter names on the request do not match the names of the parameters in the registered method', async() => {
 		const request = createRequest('sum', {a: 1, b2: 3}, requestId);
 		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_PARAMS,
 			`Invalid parameters. Method \'${request.method}\' expects parameters [a,b], but got [${Object.keys(request.params)}]`);
@@ -273,7 +273,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 		await expect(server).toReceiveMessage(expectedResponse);
 	});
 
-	it('should repond with an error when the amount of named parameters on the request do not match the amount of parameters in the registered method', async() => {
+	it('should respond with an error when the amount of named parameters on the request do not match the amount of parameters in the registered method', async() => {
 		const request = createRequest('sum', {a: 1, b: 3, c: 2}, requestId);
 		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_PARAMS,
 			`Invalid parameters. Method \'${request.method}\' expects parameters [a,b], but got [${Object.keys(request.params)}]`);
@@ -318,8 +318,8 @@ describe('JSON RPC 2.0 Websocket reports on error calback', () => {
 		);
 	});
 
-	afterEach(() => {
-		closeSocketAndRestartServer(websocket);
+	afterEach(async() => {
+		await closeSocketAndRestartServer(websocket);
 	});
 
 	it('should report error if not a request nor a response (id is missing)', async() => {

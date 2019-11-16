@@ -21,6 +21,7 @@ export class JsonRpcWebsocket {
 	public jsonRpcVersion = '2.0';
 
 	private websocket: WebSocket;
+	private closeDeferredPromise: DeferredPromise<CloseEvent>;
 
 	private requestId = 0;
 	private pendingRequests: {
@@ -47,6 +48,7 @@ export class JsonRpcWebsocket {
 		this.websocket = new WebSocket(this.url);
 
 		const openDeferredPromise = new DeferredPromise<Event>();
+		this.closeDeferredPromise = new DeferredPromise<CloseEvent>();
 
 		this.websocket.onopen = (event) => {
 			openDeferredPromise.resolve(event);
@@ -68,6 +70,8 @@ export class JsonRpcWebsocket {
 
 				this.callOnError(error);
 			}
+
+			this.closeDeferredPromise.resolve(event);
 		};
 
 		this.websocket.onmessage = (message: MessageEvent) => this.handleMessage(message.data);
@@ -75,13 +79,15 @@ export class JsonRpcWebsocket {
 		return openDeferredPromise.asPromise();
 	}
 
-	public close() {
+	public close(): Promise<CloseEvent> {
 		if (this.websocket === void 0) {
 			return;
 		}
 
 		this.websocket.close();
 		this.websocket = void 0;
+
+		return this.closeDeferredPromise.asPromise()
 	}
 
 	public get state(): WebsocketReadyStates {
