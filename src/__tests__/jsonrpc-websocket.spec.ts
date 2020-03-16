@@ -87,7 +87,9 @@ describe('JSON RPC 2.0 Websocket manage connection', () => {
 		websocket.open();
 		await expect(server.connected).resolves.toBeTruthy();
 
-		websocket.close();
+		const closeEvent = await websocket.close();
+
+		expect(closeEvent.code).toEqual(1000); // normal closure
 		await expect(server.closed).resolves.toBeTruthy();
 	});
 

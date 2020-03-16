@@ -84,7 +84,7 @@ export class JsonRpcWebsocket {
 			return;
 		}
 
-		this.websocket.close();
+		this.websocket.close(1000); // 1000 = normal closure
 		this.websocket = void 0;
 
 		return this.closeDeferredPromise.asPromise()
