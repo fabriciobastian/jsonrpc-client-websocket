@@ -15,7 +15,7 @@ jobs:
         node-version: '10.x'
         registry-url: 'https://registry.npmjs.org'
     - name: Publish if version has been updated
-      uses: fabriciobastian/npm-publish-action@f93f535
+      uses: fabriciobastian/npm-publish-action@a3dcc7d8fef1d75d1bdcb800f835b357cab97b56
       with:
         tag_name: "v%s"
         tag_message: "v%s"
