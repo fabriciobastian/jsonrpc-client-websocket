@@ -10,6 +10,13 @@ const requestTimeoutMs = 500;
 const requestId = 1;
 const jsonRpcVersion = '2.0';
 
+function createError(code: number, message: string): JsonRpcError {
+	return {
+		code: code,
+		message: message
+	};
+}
+
 function createErrorResponse(code: number, message: string): JsonRpcResponse {
 	return {
 		jsonrpc: jsonRpcVersion,
@@ -18,7 +25,8 @@ function createErrorResponse(code: number, message: string): JsonRpcResponse {
 	};
 }
 
-function createOkResponse(result: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createOkResponse(result: any): JsonRpcResponse {
 	return {
 		jsonrpc: jsonRpcVersion,
 		id: requestId,
@@ -26,13 +34,7 @@ function createOkResponse(result: any) {
 	};
 }
 
-function createError(code: number, message: string): JsonRpcError {
-	return {
-		code: code,
-		message: message
-	};
-}
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createRequest(method: string, params?: any, id?: number): JsonRpcRequest {
 	return {
 		jsonrpc: jsonRpcVersion,
@@ -58,10 +60,10 @@ async function closeSocketAndRestartServer(websocket: JsonRpcWebsocket): Promise
 }
 
 describe('JSON RPC 2.0 Websocket not opened', () => {
-	it('should throw when trying to send data and the socket is not opened', () => {
+	it('should throw when trying to send data and the socket is not opened', async() => {
 		const websocket = new JsonRpcWebsocket(testUrl, requestTimeoutMs);
 
-		expect(websocket.call('test', ['any'])).rejects.toEqual(createError(JsonRpcErrorCodes.INTERNAL_ERROR, 'The websocket is not opened'));
+		await expect(websocket.call('test', ['any'])).rejects.toEqual(createError(JsonRpcErrorCodes.INTERNAL_ERROR, 'The websocket is not opened'));
 		expect(() => websocket.notify('test', ['any'])).toThrowError(new Error('The websocket is not opened'));
 		expect(() => websocket.respondOk(1, ['any'])).toThrowError(new Error('The websocket is not opened'));
 	});
@@ -131,21 +133,19 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
 		await expect(server).toReceiveMessage(expectedRequest);
 	});
 
-	it('should send request and receive response', async(done) => {
+	it('should send request and receive response', async() => {
 		const expectedRequest = createRequest('test', ['any'], requestId);
 		const expectedResponse = createOkResponse('test success');
 
-		websocket.call('test', ['any'])
-			.then((actualResponse) => {
-				expect(actualResponse).toEqual(expectedResponse);
-				done();
-			});
+		const actualResponse = websocket.call('test', ['any']);
 
 		await expect(server).toReceiveMessage(expectedRequest);
 		server.send(expectedResponse);
+
+		expect(await actualResponse).toEqual(expectedResponse);
 	});
 
-	it('should reject result if response has both error and result', async(done) => {
+	it('should reject result if response has both error and result', async() => {
 		const expectedRequest = createRequest('test', ['any'], requestId);
 
 		const invalidResponse: JsonRpcResponse = {
@@ -158,17 +158,15 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
 		const expectedRejectResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_RESPONSE,
 			`Invalid response. Either result or error must be set, but not both. ${JSON.stringify(invalidResponse)}`);
 
-		websocket.call('test', ['any'])
-			.catch((actualRejectResponse) => {
-				expect(actualRejectResponse).toEqual(expectedRejectResponse);
-				done();
-			});
+		const actualRejectResponse = websocket.call('test', ['any']);
 
 		await expect(server).toReceiveMessage(expectedRequest);
 		server.send(invalidResponse);
+
+		await expect(actualRejectResponse).rejects.toEqual(expectedRejectResponse);
 	});
 
-	it('should handle error responses', async(done) => {
+	it('should handle error responses', async() => {
 		const expectedRequest = createRequest('test', ['any'], requestId);
 
 		const expectedErrorResponse: JsonRpcResponse = {
@@ -177,14 +175,12 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
 			error: { code: JsonRpcErrorCodes.INVALID_PARAMS, message: 'Invalid parameters'},
 		};
 
-		websocket.call('test', ['any'])
-			.catch((actualErrorResponse) => {
-				expect(actualErrorResponse).toEqual(expectedErrorResponse);
-				done();
-			});
-
+		const actualErrorResponse = websocket.call('test', ['any'])
+			
 		await expect(server).toReceiveMessage(expectedRequest);
 		server.send(expectedErrorResponse);
+
+		await expect(actualErrorResponse).rejects.toEqual(expectedErrorResponse);
 	});
 });
 
@@ -236,7 +232,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 		const invalidMethodName = 'invalidMethod';
 
 		const request = createRequest(invalidMethodName, void 0, requestId);
-		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.METHOD_NOT_FOUND, `Method \'${invalidMethodName}\' was not found`);
+		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.METHOD_NOT_FOUND, `Method '${invalidMethodName}' was not found`);
 
 		server.send(request);
 
@@ -246,7 +242,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 	it('should respond with an error when the amount of positional parameters on the request do not match the amount of parameters in the registered method', async() => {
 		const request = createRequest('sum', [2, 3, 4], requestId);
 		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_PARAMS,
-			`Invalid parameters. Method \'${request.method}\' expects 2 parameters, but got ${request.params.length}`);
+			`Invalid parameters. Method '${request.method}' expects 2 parameters, but got ${request.params.length}`);
 
 		const sumCalled = new DeferredPromise<boolean>();
 		websocket.on('sum', (a: number, b: number) => {
@@ -262,7 +258,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 	it('should respond with an error when the parameter names on the request do not match the names of the parameters in the registered method', async() => {
 		const request = createRequest('sum', {a: 1, b2: 3}, requestId);
 		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_PARAMS,
-			`Invalid parameters. Method \'${request.method}\' expects parameters [a,b], but got [${Object.keys(request.params)}]`);
+			`Invalid parameters. Method '${request.method}' expects parameters [a,b], but got [${Object.keys(request.params)}]`);
 
 		const sumCalled = new DeferredPromise<boolean>();
 		websocket.on('sum', (a: number, b: number) => {
@@ -278,7 +274,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 	it('should respond with an error when the amount of named parameters on the request do not match the amount of parameters in the registered method', async() => {
 		const request = createRequest('sum', {a: 1, b: 3, c: 2}, requestId);
 		const expectedResponse = createErrorResponse(JsonRpcErrorCodes.INVALID_PARAMS,
-			`Invalid parameters. Method \'${request.method}\' expects parameters [a,b], but got [${Object.keys(request.params)}]`);
+			`Invalid parameters. Method '${request.method}' expects parameters [a,b], but got [${Object.keys(request.params)}]`);
 
 		const sumCalled = new DeferredPromise<boolean>();
 		websocket.on('sum', (a: number, b: number) => {

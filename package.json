@@ -11,7 +11,7 @@
     "test": "jest --config jestconfig.json",
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-    "lint": "tslint -p tsconfig.json",
+    "lint": "tsc --noEmit && eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "prepublishOnly": "npm test && npm run lint",
     "prepare": "npm run build",
     "preversion": "npm run lint",
@@ -37,13 +37,16 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^24.9.1",
+    "@typescript-eslint/eslint-plugin": "^2.27.0",
+    "@typescript-eslint/parser": "^2.27.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "eslint-plugin-jest": "^23.8.2",
     "jest": "^24.9.0",
     "jest-websocket-mock": "^1.5.1",
     "mock-socket": "^8.1.1",
     "prettier": "^1.19.1",
     "ts-jest": "^24.3.0",
-    "tslint": "^5.20.1",
-    "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.8.3"
   },
   "dependencies": {

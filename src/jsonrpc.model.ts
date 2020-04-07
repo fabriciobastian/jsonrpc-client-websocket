@@ -16,19 +16,24 @@ export enum JsonRpcErrorCodes {
 export class JsonRpcError {
 	public code: number;
 	public message: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public data?: any;
 }
 
 export class JsonRpcResponse {
 	public jsonrpc: string; // Protocol version
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public id: number | any;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public result?: any;
 	public error?: JsonRpcError;
 }
 
 export class JsonRpcRequest {
 	public jsonrpc: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public id?: number | any;
 	public method: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public params?: any;
 }

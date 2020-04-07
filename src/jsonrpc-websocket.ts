@@ -9,7 +9,7 @@ export enum WebsocketReadyStates {
 	CLOSED = 3
 }
 
-interface IPendingRequest {
+interface PendingRequest {
 	request: JsonRpcRequest;
 	response: DeferredPromise<JsonRpcResponse>;
 	timeout: number;
@@ -25,10 +25,11 @@ export class JsonRpcWebsocket {
 
 	private requestId = 0;
 	private pendingRequests: {
-		[id: number]: IPendingRequest;
+		[id: number]: PendingRequest;
 	};
 
 	private rpcMethods: {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		[name: string]: (...args: any) => any
 	};
 
@@ -40,7 +41,7 @@ export class JsonRpcWebsocket {
 	public open(): Promise<Event> {
 		// See https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent for close event codes
 
-		if (!!(this.websocket)) {
+		if (this.websocket) {
 			this.close();
 		}
 
@@ -50,15 +51,15 @@ export class JsonRpcWebsocket {
 		const openDeferredPromise = new DeferredPromise<Event>();
 		this.closeDeferredPromise = new DeferredPromise<CloseEvent>();
 
-		this.websocket.onopen = (event) => {
+		this.websocket.onopen = (event): void => {
 			openDeferredPromise.resolve(event);
 		};
 
-		this.websocket.onerror = (err) => {
+		this.websocket.onerror = (err): void => {
 			openDeferredPromise.reject(err);
 		};
 
-		this.websocket.onclose = (event) => {
+		this.websocket.onclose = (event): void => {
 			this.websocket = void 0;
 
 			if (event.code !== 1000) { // 1000 = normal closure
@@ -74,7 +75,7 @@ export class JsonRpcWebsocket {
 			this.closeDeferredPromise.resolve(event);
 		};
 
-		this.websocket.onmessage = (message: MessageEvent) => this.handleMessage(message.data);
+		this.websocket.onmessage = (message: MessageEvent): void => this.handleMessage(message.data);
 
 		return openDeferredPromise.asPromise();
 	}
@@ -91,13 +92,15 @@ export class JsonRpcWebsocket {
 	}
 
 	public get state(): WebsocketReadyStates {
-		return !!(this.websocket) ? this.websocket.readyState : WebsocketReadyStates.CLOSED;
+		return this.websocket ? this.websocket.readyState : WebsocketReadyStates.CLOSED;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public on(methodName: string, callback: (...args: any[]) => any): void {
 		this.rpcMethods[methodName.toLowerCase()] = callback; // case-insensitive!
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public call(method: string, params?: any): Promise<JsonRpcResponse> {
 		if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
 			return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: 'The websocket is not opened' });
@@ -119,7 +122,8 @@ export class JsonRpcWebsocket {
 		return this.createPendingRequest(request);
 	}
 
-	public notify(method: string, params?: any) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public notify(method: string, params?: any) : void{
 		if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
 			throw new Error('The websocket is not opened');
 		}
@@ -137,15 +141,17 @@ export class JsonRpcWebsocket {
 		}
 	}
 
-	public respondOk(id: number, result: any) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public respondOk(id: number, result: any): void {
 		this.respond(id, result);
 	}
 
-	public respondError(id: number, error: JsonRpcError) {
+	public respondError(id: number, error: JsonRpcError): void {
 		this.respond(id, void 0, error);
 	}
 
-	private respond(id: number, result?: any, error?: JsonRpcError) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	private respond(id: number, result?: any, error?: JsonRpcError): void {
 		if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
 			throw new Error('The websocket is not opened');
 		}
@@ -168,7 +174,7 @@ export class JsonRpcWebsocket {
 		}
 	}
 
-	private handleMessage(msg: any) {
+	private handleMessage(msg: string): void {
 		let data = null;
 		try {
 			data = JSON.parse(msg);
@@ -202,10 +208,10 @@ export class JsonRpcWebsocket {
 		}
 	}
 
-	private handleRequest(request: JsonRpcRequest) {
+	private handleRequest(request: JsonRpcRequest): void {
 		const method = this.rpcMethods[request.method.toLowerCase()]; // case-insensitive!
 		if (!method) {
-			this.handleError(JsonRpcErrorCodes.METHOD_NOT_FOUND, `Method \'${request.method}\' was not found`, request.id);
+			this.handleError(JsonRpcErrorCodes.METHOD_NOT_FOUND, `Method '${request.method}' was not found`, request.id);
 			return;
 		}
 
@@ -226,25 +232,26 @@ export class JsonRpcWebsocket {
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private getRequestParams(method: (...args: any) => any, request: JsonRpcRequest): any[] {
 		let requestParams = [];
 		if (request.params) {
 			if (request.params instanceof Array) {
 				if (method.length !== request.params.length) {
-					throw new Error(`Invalid parameters. Method \'${request.method}\' expects ${method.length} parameters, but got ${request.params.length}`);
+					throw new Error(`Invalid parameters. Method '${request.method}' expects ${method.length} parameters, but got ${request.params.length}`);
 				}
 				requestParams = request.params;
 			} else if (request.params instanceof Object) {
 				const parameterNames = getParameterNames(method);
 
 				if (method.length !== Object.keys(request.params).length) {
-					throw new Error(`Invalid parameters. Method \'${request.method}\' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`);
+					throw new Error(`Invalid parameters. Method '${request.method}' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`);
 				}
 
 				parameterNames.forEach(paramName => {
 					const paramValue = request.params[paramName];
 					if (!paramValue) {
-						throw new Error(`Invalid parameters. Method \'${request.method}\' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`);
+						throw new Error(`Invalid parameters. Method '${request.method}' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`);
 					}
 					requestParams.push(paramValue);
 				});
@@ -255,7 +262,7 @@ export class JsonRpcWebsocket {
 		return requestParams;
 	}
 
-	private handleResponse(response: JsonRpcResponse) {
+	private handleResponse(response: JsonRpcResponse): void {
 		const activeRequest = this.pendingRequests[response.id];
 		if (activeRequest === void 0) {
 			this.callOnError({
@@ -287,7 +294,7 @@ export class JsonRpcWebsocket {
 		}
 	}
 
-	private handleError(code: number, message: string, requestId?: number) {
+	private handleError(code: number, message: string, requestId?: number): void {
 		const error: JsonRpcError = { code, message };
 		this.callOnError(error);
 		if (requestId) {
@@ -327,17 +334,18 @@ export class JsonRpcWebsocket {
 		}, this.requestTimeoutMs);
 	}
 
-	private callOnError(error: JsonRpcError) {
+	private callOnError(error: JsonRpcError): void {
 		if (this.onError !== void 0) {
 			this.onError(error);
 		}
 	}
 
-	private getRequestId() {
+	private getRequestId(): number {
 		return ++this.requestId;
 	}
 
-	private hasProperty(object: any, propertyName: string) {
-		return Object.prototype.hasOwnProperty.call(object, propertyName);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	private hasProperty(object: any, propertyName: string): boolean {
+		return !!(Object.prototype.hasOwnProperty.call(object, propertyName));
 	}
 }

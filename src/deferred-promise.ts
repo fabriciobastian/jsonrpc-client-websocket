@@ -1,6 +1,6 @@
 export class DeferredPromise<T> {
-	private deferResolve: any;
-	private deferReject: any;
+	private deferResolve: (value: T) => void;
+	private deferReject: (reason: T) => void;
 
 	private promise: Promise<T>;
 
