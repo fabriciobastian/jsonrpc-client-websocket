@@ -33,17 +33,84 @@ export class JsonRpcWebsocket {
     [name: string]: (...args: any) => any;
   };
 
+  public get state(): WebsocketReadyStates {
+    return this.websocket ? this.websocket.readyState : WebsocketReadyStates.CLOSED;
+  }
+
   constructor(private url: string, private requestTimeoutMs: number, private onError?: ErrorCallback) {
     this.pendingRequests = {};
     this.rpcMethods = {};
   }
 
-  public open(): Promise<Event> {
-    // See https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent for close event codes
-
+  public async open(): Promise<Event> {
     if (this.websocket) {
-      this.close();
+      await this.close();
     }
+
+    return this.createWebsocket();
+  }
+
+  public close(): Promise<CloseEvent> {
+    if (this.websocket === void 0) {
+      return Promise.resolve(new CloseEvent('No websocket was opened', { wasClean: false, code: 1005 }));
+    }
+
+    this.websocket.close(1000); // 1000 = normal closure
+    this.websocket = void 0;
+
+    return this.closeDeferredPromise.asPromise();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public on(methodName: string, callback: (...args: any[]) => any): void {
+    this.rpcMethods[methodName.toLowerCase()] = callback; // case-insensitive!
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public call(method: string, params?: any): Promise<JsonRpcResponse> {
+    if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
+      return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: 'The websocket is not opened' });
+    }
+
+    const request: JsonRpcRequest = {
+      id: this.getRequestId(),
+      jsonrpc: this.jsonRpcVersion,
+      method,
+      params,
+    };
+
+    try {
+      this.websocket.send(JSON.stringify(request));
+    } catch (e) {
+      // istanbul ignore next
+      return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: `Internal error. ${e}` });
+    }
+
+    return this.createPendingRequest(request);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public notify(method: string, params?: any): void {
+    if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
+      throw new Error('The websocket is not opened');
+    }
+
+    const request: JsonRpcRequest = {
+      jsonrpc: this.jsonRpcVersion,
+      method,
+      params,
+    };
+
+    try {
+      this.websocket.send(JSON.stringify(request));
+    } catch (e) {
+      // istanbul ignore next
+      throw Error(e);
+    }
+  }
+
+  private createWebsocket(): Promise<Event> {
+    // See https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent for close event codes
 
     // this.websocket = new WebSocket(this.url, ['jsonrpc-2.0']);
     this.websocket = new WebSocket(this.url);
@@ -81,96 +148,38 @@ export class JsonRpcWebsocket {
     return openDeferredPromise.asPromise();
   }
 
-  public close(): Promise<CloseEvent> {
-    if (this.websocket === void 0) {
-      return;
-    }
-
-    this.websocket.close(1000); // 1000 = normal closure
-    this.websocket = void 0;
-
-    return this.closeDeferredPromise.asPromise();
-  }
-
-  public get state(): WebsocketReadyStates {
-    return this.websocket ? this.websocket.readyState : WebsocketReadyStates.CLOSED;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public on(methodName: string, callback: (...args: any[]) => any): void {
-    this.rpcMethods[methodName.toLowerCase()] = callback; // case-insensitive!
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public call(method: string, params?: any): Promise<JsonRpcResponse> {
-    if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
-      return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: 'The websocket is not opened' });
-    }
-
-    const request: JsonRpcRequest = {
-      id: this.getRequestId(),
-      jsonrpc: this.jsonRpcVersion,
-      method,
-      params,
-    };
-
-    try {
-      this.websocket.send(JSON.stringify(request));
-    } catch (e) {
-      return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: `Internal error. ${e}` });
-    }
-
-    return this.createPendingRequest(request);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public notify(method: string, params?: any): void {
-    if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
-      throw new Error('The websocket is not opened');
-    }
-
-    const request: JsonRpcRequest = {
-      jsonrpc: this.jsonRpcVersion,
-      method,
-      params,
-    };
-
-    try {
-      this.websocket.send(JSON.stringify(request));
-    } catch (e) {
-      throw Error(e);
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public respondOk(id: number, result: any): void {
+  private respondOk(id: number, result: any): void {
     this.respond(id, result);
   }
 
-  public respondError(id: number, error: JsonRpcError): void {
+  private respondError(id: number, error: JsonRpcError): void {
     this.respond(id, void 0, error);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private respond(id: number, result?: any, error?: JsonRpcError): void {
+    // istanbul ignore if
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
       throw new Error('The websocket is not opened');
     }
 
+    // istanbul ignore if
     if (!!result && !!error) {
       throw new Error('Invalid response. Either result or error must be set, but not both');
     }
 
     const response: JsonRpcResponse = {
-      error,
-      id,
       jsonrpc: this.jsonRpcVersion,
-      result,
+      error: error,
+      id: id,
+      result: result
     };
 
     try {
       this.websocket.send(JSON.stringify(response));
     } catch (e) {
+      // istanbul ignore next
       throw Error(e);
     }
   }
@@ -179,7 +188,7 @@ export class JsonRpcWebsocket {
     let data = null;
     try {
       data = JSON.parse(msg);
-    } catch (e) {
+    } catch (e) /* istanbul ignore next */ {
       this.handleError(JsonRpcErrorCodes.PARSE_ERROR, `Invalid JSON was received. ${e}`);
       return;
     }
@@ -223,9 +232,9 @@ export class JsonRpcWebsocket {
       return;
     }
 
-    const result = method(...requestParams); // only positional arguments are supported (no named arguments)
+    const result = method(...requestParams);
     if (request.id) {
-      this.respondOk(request.id, result ? result : {});
+      this.respondOk(request.id, result);
     }
   }
 
@@ -318,6 +327,8 @@ export class JsonRpcWebsocket {
   private setupRequestTimeout(requestId: number): number {
     return self.setTimeout(() => {
       const activeRequest = this.pendingRequests[requestId];
+
+      // istanbul ignore if
       if (activeRequest === void 0) {
         return;
       }

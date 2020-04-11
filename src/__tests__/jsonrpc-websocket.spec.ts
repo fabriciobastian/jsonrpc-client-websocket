@@ -67,7 +67,14 @@ describe('JSON RPC 2.0 Websocket not opened', () => {
       createError(JsonRpcErrorCodes.INTERNAL_ERROR, 'The websocket is not opened'),
     );
     expect(() => websocket.notify('test', ['any'])).toThrowError(new Error('The websocket is not opened'));
-    expect(() => websocket.respondOk(1, ['any'])).toThrowError(new Error('The websocket is not opened'));
+  });
+
+  it('should reject open promise when fail to open connection', async () => {
+    const websocket = new JsonRpcWebsocket(testUrl, requestTimeoutMs); // no server
+
+    const openPromise = websocket.open();
+
+    await expect(openPromise).rejects.toBeTruthy();
   });
 });
 
@@ -88,7 +95,7 @@ describe('JSON RPC 2.0 Websocket manage connection', () => {
   });
 
   it('should open/close the connection', async () => {
-    websocket.open();
+    await websocket.open();
     await expect(server.connected).resolves.toBeTruthy();
 
     const closeEvent = await websocket.close();
@@ -100,10 +107,20 @@ describe('JSON RPC 2.0 Websocket manage connection', () => {
   it('should return the correct state', async () => {
     expect(websocket.state).toBe(WebsocketReadyStates.OPEN);
 
-    websocket.close();
-    await server.closed;
+    await websocket.close();
+    await expect(server.closed).resolves.toBeTruthy();
 
     expect([WebsocketReadyStates.CLOSED, WebsocketReadyStates.CLOSING]).toContain(websocket.state);
+  });
+
+  it('should indicate that no websocket was opened, if no socket was opened when trying to close', async () => {
+    await websocket.close();
+
+    const closeEvent = await websocket.close();
+
+    expect(closeEvent.type).toBe('No websocket was opened');
+    expect(closeEvent.wasClean).toBeFalsy();
+    expect(closeEvent.code).toBe(1005);
   });
 });
 
@@ -127,7 +144,7 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
     await expect(server).toReceiveMessage(expectedRequest);
   });
 
-  it('should send request and timeout, if no response is provided', async () => {
+  it('should send request and timeout if no response is provided', async () => {
     const expectedRequest = createRequest('test', ['any'], requestId);
     const expectedError = createErrorResponse(
       JsonRpcErrorCodes.REQUEST_TIMEOUT,
@@ -235,6 +252,38 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     await expect(server).toReceiveMessage(expectedResponse);
   });
 
+  it('should call a method which has no parameters', async () => {
+    const request = createRequest('noParametersMethod', void 0, requestId);
+    const expectedResponse = createOkResponse(void 0);
+
+    const noParametersMethodCalled = new DeferredPromise<boolean>();
+    websocket.on('noParametersMethod', () => {
+      noParametersMethodCalled.resolve(true);
+    });
+    server.send(request);
+
+    await expect(noParametersMethodCalled.asPromise()).resolves.toBeTruthy();
+    await expect(server).toReceiveMessage(expectedResponse);
+  });
+
+  it('should not respond to notifications', async () => {
+    const request = createRequest('notification'); // no id
+
+    const notificationMethodCalled = new DeferredPromise<boolean>();
+    websocket.on('notification', () => {
+      notificationMethodCalled.resolve(true);
+    });
+    server.send(request);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = jest.spyOn((websocket as any).websocket, 'send');
+    // the above is not great, but it is unfortunatelly difficult test the absence
+    // of a response. Therefore, I have chosen to spy on a private method.
+
+    await expect(notificationMethodCalled.asPromise()).resolves.toBeTruthy();
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
   it('should respond with an error when the requested method is not found', async () => {
     const invalidMethodName = 'invalidMethod';
 
@@ -256,9 +305,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
       `Invalid parameters. Method '${request.method}' expects 2 parameters, but got ${request.params.length}`,
     );
 
-    const sumCalled = new DeferredPromise<boolean>();
     websocket.on('sum', (a: number, b: number) => {
-      sumCalled.resolve(true);
       return a + b;
     });
 
@@ -276,9 +323,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
       )}]`,
     );
 
-    const sumCalled = new DeferredPromise<boolean>();
     websocket.on('sum', (a: number, b: number) => {
-      sumCalled.resolve(true);
       return a + b;
     });
 
@@ -291,14 +336,10 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     const request = createRequest('sum', { a: 1, b: 3, c: 2 }, requestId);
     const expectedResponse = createErrorResponse(
       JsonRpcErrorCodes.INVALID_PARAMS,
-      `Invalid parameters. Method '${request.method}' expects parameters [a,b], but got [${Object.keys(
-        request.params,
-      )}]`,
+      `Invalid parameters. Method '${request.method}' expects parameters [a,b], but got [${Object.keys(request.params)}]`
     );
 
-    const sumCalled = new DeferredPromise<boolean>();
     websocket.on('sum', (a: number, b: number) => {
-      sumCalled.resolve(true);
       return a + b;
     });
 
@@ -313,8 +354,26 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     const request = { jsonrpc: version, id: requestId, method: 'any' };
     const expectedResponse = createErrorResponse(
       JsonRpcErrorCodes.INVALID_REQUEST,
-      `Invalid JSON RPC protocol version. Expecting ${websocket.jsonRpcVersion}, but got ${version}`,
+      `Invalid JSON RPC protocol version. Expecting ${websocket.jsonRpcVersion}, but got ${version}`
     );
+
+    server.send(request);
+
+    await expect(server).toReceiveMessage(expectedResponse);
+  });
+
+  it('should respond with an error if the parameters argument is not an array or an object', async () => {
+    const request = createRequest('sum', 1, requestId);
+    const expectedResponse = createErrorResponse(
+      JsonRpcErrorCodes.INVALID_PARAMS,
+      `Invalid parameters. Expected array or object, but got ${typeof request.params}`
+    );
+
+    const sumCalled = new DeferredPromise<boolean>();
+    websocket.on('sum', (a: number, b: number) => {
+      sumCalled.resolve(true);
+      return a + b;
+    });
 
     server.send(request);
 
@@ -349,6 +408,20 @@ describe('JSON RPC 2.0 Websocket reports on error calback', () => {
     );
 
     server.send(request);
+
+    await expect(callbackErrorPromise.asPromise()).resolves.toBeTruthy();
+    expect(callbackError).toEqual(expectedError);
+  });
+
+  it('should report error if response id does not match any request', async () => {
+    const response = { jsonrpc: websocket.jsonRpcVersion, id: 1, result: 'some-result' };
+
+    const expectedError = createError(
+      JsonRpcErrorCodes.INTERNAL_ERROR,
+      `Received a response with id ${response.id}, which does not match any requests made by this client`,
+    );
+
+    server.send(response);
 
     await expect(callbackErrorPromise.asPromise()).resolves.toBeTruthy();
     expect(callbackError).toEqual(expectedError);
