@@ -260,7 +260,7 @@ export class JsonRpcWebsocket {
 
         parameterNames.forEach(paramName => {
           const paramValue = request.params[paramName];
-          if (!paramValue) {
+          if (paramValue === undefined) {
             throw new Error(
               `Invalid parameters. Method '${request.method}' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`
             );
