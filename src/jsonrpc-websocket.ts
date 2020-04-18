@@ -51,12 +51,12 @@ export class JsonRpcWebsocket {
   }
 
   public close(): Promise<CloseEvent> {
-    if (this.websocket === void 0) {
+    if (this.websocket === undefined) {
       return Promise.resolve(new CloseEvent('No websocket was opened', { wasClean: false, code: 1005 }));
     }
 
     this.websocket.close(1000); // 1000 = normal closure
-    this.websocket = void 0;
+    this.websocket = undefined;
 
     return this.closeDeferredPromise.asPromise();
   }
@@ -127,7 +127,7 @@ export class JsonRpcWebsocket {
     };
 
     this.websocket.onclose = (event): void => {
-      this.websocket = void 0;
+      this.websocket = undefined;
 
       if (event.code !== 1000) {
         // 1000 = normal closure
@@ -154,7 +154,7 @@ export class JsonRpcWebsocket {
   }
 
   private respondError(id: number, error: JsonRpcError): void {
-    this.respond(id, void 0, error);
+    this.respond(id, undefined, error);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,7 +197,7 @@ export class JsonRpcWebsocket {
       !!data && this.hasProperty(data, 'id') && (this.hasProperty(data, 'result') || this.hasProperty(data, 'error'));
     const isRequest = !!data && this.hasProperty(data, 'method');
 
-    const requestId = isRequest && data.id ? data.id : void 0;
+    const requestId = isRequest && data.id ? data.id : undefined;
 
     if (!data.jsonrpc || data.jsonrpc !== this.jsonRpcVersion) {
       this.handleError(
@@ -276,7 +276,7 @@ export class JsonRpcWebsocket {
 
   private handleResponse(response: JsonRpcResponse): void {
     const activeRequest = this.pendingRequests[response.id];
-    if (activeRequest === void 0) {
+    if (activeRequest === undefined) {
       this.callOnError({
         code: JsonRpcErrorCodes.INTERNAL_ERROR,
         message: `Received a response with id ${response.id}, which does not match any requests made by this client`,
@@ -329,7 +329,7 @@ export class JsonRpcWebsocket {
       const activeRequest = this.pendingRequests[requestId];
 
       // istanbul ignore if
-      if (activeRequest === void 0) {
+      if (activeRequest === undefined) {
         return;
       }
 
@@ -349,7 +349,7 @@ export class JsonRpcWebsocket {
   }
 
   private callOnError(error: JsonRpcError): void {
-    if (this.onError !== void 0) {
+    if (this.onError !== undefined) {
       this.onError(error);
     }
   }

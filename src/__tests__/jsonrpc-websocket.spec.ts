@@ -252,9 +252,25 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     await expect(server).toReceiveMessage(expectedResponse);
   });
 
+  it('should call the registered method with boolean named params and respond the request', async () => {
+    const request = createRequest('and', { b: true, a: false }, requestId);
+    const expectedResponse = createOkResponse(false);
+
+    const andCalled = new DeferredPromise<boolean>();
+    websocket.on('and', (a: boolean, b: boolean) => {
+      andCalled.resolve(true);
+      return a && b;
+    });
+
+    server.send(request);
+    
+    await expect(server).toReceiveMessage(expectedResponse);
+    await expect(andCalled.asPromise()).resolves.toBeTruthy();
+  });
+
   it('should call a method which has no parameters', async () => {
-    const request = createRequest('noParametersMethod', void 0, requestId);
-    const expectedResponse = createOkResponse(void 0);
+    const request = createRequest('noParametersMethod', undefined, requestId);
+    const expectedResponse = createOkResponse(undefined);
 
     const noParametersMethodCalled = new DeferredPromise<boolean>();
     websocket.on('noParametersMethod', () => {
@@ -287,7 +303,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
   it('should respond with an error when the requested method is not found', async () => {
     const invalidMethodName = 'invalidMethod';
 
-    const request = createRequest(invalidMethodName, void 0, requestId);
+    const request = createRequest(invalidMethodName, undefined, requestId);
     const expectedResponse = createErrorResponse(
       JsonRpcErrorCodes.METHOD_NOT_FOUND,
       `Method '${invalidMethodName}' was not found`,
