@@ -300,6 +300,22 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     expect(sendSpy).not.toHaveBeenCalled();
   });
 
+  it('should unregister a method and respond with an error if the unregistered method is called', async () => {
+    const unregisteredMethodName = 'unregisteredMethod';
+
+    websocket.on(unregisteredMethodName, () => '');
+    websocket.off(unregisteredMethodName);
+
+    const request = createRequest(unregisteredMethodName, undefined, requestId);
+    const expectedResponse = createErrorResponse(
+      JsonRpcErrorCodes.METHOD_NOT_FOUND,
+      `Method '${unregisteredMethodName}' was not found`,
+    );
+    server.send(request);
+
+    await expect(server).toReceiveMessage(expectedResponse);
+  });
+
   it('should respond with an error when the requested method is not found', async () => {
     const invalidMethodName = 'invalidMethod';
 

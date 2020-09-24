@@ -66,6 +66,10 @@ export class JsonRpcWebsocket {
     this.rpcMethods[methodName.toLowerCase()] = callback; // case-insensitive!
   }
 
+  public off(methodName: string): void {
+    delete this.rpcMethods[methodName.toLowerCase()]; // case-insensitive!
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public call(method: string, params?: any): Promise<JsonRpcResponse> {
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {

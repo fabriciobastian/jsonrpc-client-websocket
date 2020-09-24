@@ -70,3 +70,8 @@ websocket.on('sum', (a: number, b: number) => {
 });
 ```
 The defined RPC methods can also be called with both positional and named parameters.
+
+## Remove RPC method
+```typescript
+websocket.off('sum');
+```
