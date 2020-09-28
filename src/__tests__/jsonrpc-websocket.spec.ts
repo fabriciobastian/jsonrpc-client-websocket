@@ -101,14 +101,14 @@ describe('JSON RPC 2.0 Websocket manage connection', () => {
     const closeEvent = await websocket.close();
 
     expect(closeEvent.code).toEqual(1000); // normal closure
-    await expect(server.closed).resolves.toBeTruthy();
+    await server.closed;
   });
 
   it('should return the correct state', async () => {
     expect(websocket.state).toBe(WebsocketReadyStates.OPEN);
 
     await websocket.close();
-    await expect(server.closed).resolves.toBeTruthy();
+    await server.closed;
 
     expect([WebsocketReadyStates.CLOSED, WebsocketReadyStates.CLOSING]).toContain(websocket.state);
   });

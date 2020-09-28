@@ -70,7 +70,7 @@ export class JsonRpcWebsocket {
     delete this.rpcMethods[methodName.toLowerCase()]; // case-insensitive!
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public call(method: string, params?: any): Promise<JsonRpcResponse> {
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
       return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: 'The websocket is not opened' });
@@ -93,7 +93,7 @@ export class JsonRpcWebsocket {
     return this.createPendingRequest(request);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public notify(method: string, params?: any): void {
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
       throw new Error('The websocket is not opened');
