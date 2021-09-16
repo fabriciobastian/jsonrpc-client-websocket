@@ -17,6 +17,8 @@ interface PendingRequest {
 
 export type ErrorCallback = (error: JsonRpcError) => void;
 
+let websocketFactory: ((url: string) => WebSocket) | null;
+
 export class JsonRpcWebsocket {
   public jsonRpcVersion = '2.0';
 
@@ -35,6 +37,10 @@ export class JsonRpcWebsocket {
 
   public get state(): WebsocketReadyStates {
     return this.websocket ? this.websocket.readyState : WebsocketReadyStates.CLOSED;
+  }
+
+  public static setWebSocketFactory(factoryFn: ((url: string) => WebSocket) | null): void {
+    websocketFactory = factoryFn;
   }
 
   constructor(private url: string, private requestTimeoutMs: number, private onError?: ErrorCallback) {
@@ -117,7 +123,11 @@ export class JsonRpcWebsocket {
     // See https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent for close event codes
 
     // this.websocket = new WebSocket(this.url, ['jsonrpc-2.0']);
-    this.websocket = new WebSocket(this.url);
+    if (websocketFactory) {
+      this.websocket = websocketFactory(this.url);
+    } else {
+      this.websocket = new WebSocket(this.url);
+    }
 
     const openDeferredPromise = new DeferredPromise<Event>();
     this.closeDeferredPromise = new DeferredPromise<CloseEvent>();
