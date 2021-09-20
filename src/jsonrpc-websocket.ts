@@ -56,9 +56,11 @@ export class JsonRpcWebsocket {
     return this.createWebsocket();
   }
 
-  public close(): Promise<CloseEvent> {
+  public close(): Promise<CloseEvent | boolean> {
     if (this.websocket === undefined) {
-      return Promise.resolve(new CloseEvent('No websocket was opened', { wasClean: false, code: 1005 }));
+      return Promise.resolve(
+        globalThis.CloseEvent ? new CloseEvent('No websocket was opened', { wasClean: false, code: 1005 }) : true,
+      );
     }
 
     this.websocket.close(1000); // 1000 = normal closure
