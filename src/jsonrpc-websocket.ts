@@ -248,9 +248,15 @@ export class JsonRpcWebsocket {
       return;
     }
 
-    const result = method(...requestParams);
-    if (request.id) {
-      this.respondOk(request.id, result);
+    try {
+      const result = method(...requestParams);
+      if (request.id) {
+        this.respondOk(request.id, result);
+      }
+    } catch (e) {
+      if (request.id) {
+        this.respondError(request.id, e);
+      }
     }
   }
 
