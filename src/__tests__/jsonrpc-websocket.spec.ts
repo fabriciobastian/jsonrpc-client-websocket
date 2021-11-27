@@ -416,8 +416,8 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 
     const request = createRequest('throwError', undefined, requestId);
     const expectedResponse = createErrorResponse(
-      JsonRpcErrorCodes.REQUEST_SERVER_ERROR,
-      `The called method 'throwError' has thrown: '${methodErrorMessage}'`,
+      JsonRpcErrorCodes.REQUEST_FAILED,
+      `Method 'throwError' has thrown: '${methodErrorMessage}'`,
     );
 
     websocket.on('throwError', () => {
@@ -430,7 +430,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
   });
 });
 
-describe('JSON RPC 2.0 Websocket reports on error calback', () => {
+describe('JSON RPC 2.0 Websocket reports on error callback', () => {
   let websocket;
   let server;
   let callbackErrorPromise: DeferredPromise<boolean>;

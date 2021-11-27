@@ -239,8 +239,8 @@ export class JsonRpcWebsocket {
       }
     } catch (error) {
       this.handleError(
-        JsonRpcErrorCodes.REQUEST_SERVER_ERROR,
-        `The called method '${request.method}' has thrown: '${error.message}'`,
+        JsonRpcErrorCodes.REQUEST_FAILED,
+        `Method '${request.method}' has thrown: '${error.message}'`,
         request.id,
       );
     }
