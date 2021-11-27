@@ -11,6 +11,7 @@ export enum JsonRpcErrorCodes {
   // App specific
   INVALID_RESPONSE = -32001,
   REQUEST_TIMEOUT = -32002,
+  REQUEST_SERVER_ERROR = -32003,
 }
 
 export class JsonRpcError {

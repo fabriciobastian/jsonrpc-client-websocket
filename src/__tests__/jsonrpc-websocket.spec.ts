@@ -1,4 +1,3 @@
-// tslint:disable: max-line-length
 import { ErrorCallback, JsonRpcWebsocket, WebsocketReadyStates } from '../jsonrpc-websocket';
 import { WS } from 'jest-websocket-mock';
 import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from '../jsonrpc.model';
@@ -25,8 +24,7 @@ function createErrorResponse(code: number, message: string): JsonRpcResponse {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createOkResponse(result: any): JsonRpcResponse {
+function createOkResponse(result: unknown): JsonRpcResponse {
   return {
     jsonrpc: jsonRpcVersion,
     id: requestId,
@@ -34,8 +32,7 @@ function createOkResponse(result: any): JsonRpcResponse {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createRequest(method: string, params?: any, id?: number): JsonRpcRequest {
+function createRequest(method: string, params?: unknown, id?: number): JsonRpcRequest {
   return {
     jsonrpc: jsonRpcVersion,
     id: id,
@@ -263,7 +260,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     });
 
     server.send(request);
-    
+
     await expect(server).toReceiveMessage(expectedResponse);
     await expect(andCalled.asPromise()).resolves.toBeTruthy();
   });
@@ -368,7 +365,9 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     const request = createRequest('sum', { a: 1, b: 3, c: 2 }, requestId);
     const expectedResponse = createErrorResponse(
       JsonRpcErrorCodes.INVALID_PARAMS,
-      `Invalid parameters. Method '${request.method}' expects parameters [a,b], but got [${Object.keys(request.params)}]`
+      `Invalid parameters. Method '${request.method}' expects parameters [a,b], but got [${Object.keys(
+        request.params,
+      )}]`,
     );
 
     websocket.on('sum', (a: number, b: number) => {
@@ -386,7 +385,7 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     const request = { jsonrpc: version, id: requestId, method: 'any' };
     const expectedResponse = createErrorResponse(
       JsonRpcErrorCodes.INVALID_REQUEST,
-      `Invalid JSON RPC protocol version. Expecting ${websocket.jsonRpcVersion}, but got ${version}`
+      `Invalid JSON RPC protocol version. Expecting ${websocket.jsonRpcVersion}, but got ${version}`,
     );
 
     server.send(request);
@@ -398,13 +397,31 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     const request = createRequest('sum', 1, requestId);
     const expectedResponse = createErrorResponse(
       JsonRpcErrorCodes.INVALID_PARAMS,
-      `Invalid parameters. Expected array or object, but got ${typeof request.params}`
+      `Invalid parameters. Expected array or object, but got ${typeof request.params}`,
     );
 
     const sumCalled = new DeferredPromise<boolean>();
     websocket.on('sum', (a: number, b: number) => {
       sumCalled.resolve(true);
       return a + b;
+    });
+
+    server.send(request);
+
+    await expect(server).toReceiveMessage(expectedResponse);
+  });
+
+  it('should respond with an error if the called method throws an exception', async () => {
+    const methodErrorMessage = 'This method always throw an exception';
+
+    const request = createRequest('throwError', undefined, requestId);
+    const expectedResponse = createErrorResponse(
+      JsonRpcErrorCodes.REQUEST_SERVER_ERROR,
+      `The called method 'throwError' has thrown: '${methodErrorMessage}'`,
+    );
+
+    websocket.on('throwError', () => {
+      throw new Error(methodErrorMessage);
     });
 
     server.send(request);

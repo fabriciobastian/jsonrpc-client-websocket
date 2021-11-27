@@ -70,8 +70,7 @@ export class JsonRpcWebsocket {
     delete this.rpcMethods[methodName.toLowerCase()]; // case-insensitive!
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public call(method: string, params?: any): Promise<JsonRpcResponse> {
+  public call(method: string, params?: unknown): Promise<JsonRpcResponse> {
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
       return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: 'The websocket is not opened' });
     }
@@ -93,8 +92,7 @@ export class JsonRpcWebsocket {
     return this.createPendingRequest(request);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public notify(method: string, params?: any): void {
+  public notify(method: string, params?: unknown): void {
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
       throw new Error('The websocket is not opened');
     }
@@ -152,8 +150,7 @@ export class JsonRpcWebsocket {
     return openDeferredPromise.asPromise();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private respondOk(id: number, result: any): void {
+  private respondOk(id: number, result: unknown): void {
     this.respond(id, result);
   }
 
@@ -161,8 +158,7 @@ export class JsonRpcWebsocket {
     this.respond(id, undefined, error);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private respond(id: number, result?: any, error?: JsonRpcError): void {
+  private respond(id: number, result?: unknown, error?: JsonRpcError): void {
     // istanbul ignore if
     if (!this.websocket || this.state !== WebsocketReadyStates.OPEN) {
       throw new Error('The websocket is not opened');
@@ -177,7 +173,7 @@ export class JsonRpcWebsocket {
       jsonrpc: this.jsonRpcVersion,
       error: error,
       id: id,
-      result: result
+      result: result,
     };
 
     try {
@@ -236,9 +232,17 @@ export class JsonRpcWebsocket {
       return;
     }
 
-    const result = method(...requestParams);
-    if (request.id) {
-      this.respondOk(request.id, result);
+    try {
+      const result = method(...requestParams);
+      if (request.id) {
+        this.respondOk(request.id, result);
+      }
+    } catch (error) {
+      this.handleError(
+        JsonRpcErrorCodes.REQUEST_SERVER_ERROR,
+        `The called method '${request.method}' has thrown: '${error.message}'`,
+        request.id,
+      );
     }
   }
 
@@ -249,7 +253,7 @@ export class JsonRpcWebsocket {
       if (request.params instanceof Array) {
         if (method.length !== request.params.length) {
           throw new Error(
-            `Invalid parameters. Method '${request.method}' expects ${method.length} parameters, but got ${request.params.length}`
+            `Invalid parameters. Method '${request.method}' expects ${method.length} parameters, but got ${request.params.length}`,
           );
         }
         requestParams = request.params;
@@ -258,15 +262,19 @@ export class JsonRpcWebsocket {
 
         if (method.length !== Object.keys(request.params).length) {
           throw new Error(
-            `Invalid parameters. Method '${request.method}' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`
+            `Invalid parameters. Method '${
+              request.method
+            }' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`,
           );
         }
 
-        parameterNames.forEach(paramName => {
+        parameterNames.forEach((paramName) => {
           const paramValue = request.params[paramName];
           if (paramValue === undefined) {
             throw new Error(
-              `Invalid parameters. Method '${request.method}' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`
+              `Invalid parameters. Method '${
+                request.method
+              }' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`,
             );
           }
           requestParams.push(paramValue);
@@ -362,8 +370,7 @@ export class JsonRpcWebsocket {
     return ++this.requestId;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private hasProperty(object: any, propertyName: string): boolean {
+  private hasProperty(object: unknown, propertyName: string): boolean {
     return !!Object.prototype.hasOwnProperty.call(object, propertyName);
   }
 }

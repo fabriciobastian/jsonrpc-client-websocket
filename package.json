@@ -8,16 +8,17 @@
     "lib/**/*"
   ],
   "scripts": {
-    "test": "jest --config jestconfig.json",
+    "test": "jest",
     "coverage": "jest --config jestconfig.json --coverage",
     "build": "tsc",
-    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "format": "prettier --write \"src/**/*.ts\"",
     "lint": "tsc --noEmit && eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "prepublishOnly": "npm test && npm run lint",
     "prepare": "npm run build",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "updateAll": "npm-check-updates --upgrade"
   },
   "repository": {
     "type": "git",
@@ -37,18 +38,20 @@
   "author": "Fabricio Bastian",
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^26.0.14",
-    "@typescript-eslint/eslint-plugin": "^4.3.0",
-    "@typescript-eslint/parser": "^4.3.0",
-    "eslint": "^7.10.0",
-    "eslint-config-prettier": "^6.12.0",
-    "eslint-plugin-jest": "^24.0.2",
-    "jest": "^26.4.2",
-    "jest-websocket-mock": "^2.2.0",
-    "mock-socket": "^9.0.3",
-    "prettier": "^2.1.2",
-    "ts-jest": "^26.4.1",
-    "typescript": "^4.0.3"
+    "@types/jest": "^27.0.3",
+    "@typescript-eslint/eslint-plugin": "^5.4.0",
+    "@typescript-eslint/parser": "^5.4.0",
+    "eslint": "^8.3.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-jest": "^25.3.0",
+    "jest": "^27.3.1",
+    "jest-websocket-mock": "^2.2.1",
+    "mock-socket": "^9.0.8",
+    "npm-check-updates": "^12.0.2",
+    "prettier": "^2.5.0",
+    "ts-jest": "^27.0.7",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.2"
   },
   "dependencies": {
     "get-parameter-names": "^0.3.0"
