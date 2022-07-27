@@ -71,6 +71,30 @@ websocket.on('sum', (a: number, b: number) => {
 ```
 The defined RPC methods can also be called with both positional and named parameters.
 
+#### Minification/Obfuscation
+
+When using code minification/obfuscation the parameter names may change, which can
+ cause calls using named parameters to fail. To mitigate this you can do one or a
+combination of the following:
+- do not minify/obfuscate the code where `on` is used, so the function registration does not get modified
+- use positional parameters
+- register functions as following:
+```typescript
+websocket.on('sum', (params: { a: number, b: number }) => {
+    return params.a + params.b;
+});
+```
+and then call the function using positional parameters using the object:
+```typescript
+websocket.call('sum', [{a: 1, b: 2}])
+    .then((response) => {
+        // handle response
+    })
+    .catch((error) => {
+        // handle error
+    });
+```
+
 ## Remove RPC method
 ```typescript
 websocket.off('sum');
