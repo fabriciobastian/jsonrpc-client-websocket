@@ -1,6 +1,6 @@
 [![📦 Build](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/build.yml/badge.svg)](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/build.yml) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket)
 
-![jsonrpc-client-websocket](https://github.com/fabriciobastian/jsonrpc-client-websocket/blob/master/assets/jsonrpc-client-websocket-banner-light-small.png?raw=true)
+![jsonrpc-client-websocket](https://raw.githubusercontent.com/fabriciobastian/jsonrpc-client-websocket/main/assets/jsonrpc-client-websocket-banner-light-small.png)
 
 A simple JSON RPC 2.0 client over websockets
 
