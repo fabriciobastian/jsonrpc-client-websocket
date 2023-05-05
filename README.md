@@ -1,4 +1,4 @@
-[![Travis build status](https://travis-ci.com/fabriciobastian/jsonrpc-client-websocket.svg?branch=master)](https://travis-ci.com/fabriciobastian/jsonrpc-client-websocket) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket)
+[![📦 Build](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/build.yml/badge.svg)](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/build.yml) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket)
 
 ![jsonrpc-client-websocket](https://github.com/fabriciobastian/jsonrpc-client-websocket/blob/master/assets/jsonrpc-client-websocket-banner-light-small.png?raw=true)
 
