@@ -63,7 +63,7 @@ describe('JSON RPC 2.0 Websocket not opened', () => {
     await expect(websocket.call('test', ['any'])).rejects.toEqual(
       createError(JsonRpcErrorCodes.INTERNAL_ERROR, 'The websocket is not opened'),
     );
-    expect(() => websocket.notify('test', ['any'])).toThrowError(new Error('The websocket is not opened'));
+    expect(() => websocket.notify('test', ['any'])).toThrow(new Error('The websocket is not opened'));
   });
 
   it('should reject open promise when fail to open connection', async () => {
@@ -431,8 +431,8 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
 });
 
 describe('JSON RPC 2.0 Websocket reports on error callback', () => {
-  let websocket;
-  let server;
+  let websocket: JsonRpcWebsocket;
+  let server: WS;
   let callbackErrorPromise: DeferredPromise<boolean>;
   let callbackError: JsonRpcError;
 

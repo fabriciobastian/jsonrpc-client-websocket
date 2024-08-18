@@ -1,4 +1,4 @@
-import * as getParameterNames from 'get-parameter-names';
+import getParameterNames from 'get-parameter-names';
 import { DeferredPromise } from './deferred-promise';
 import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from './jsonrpc.model';
 
@@ -20,7 +20,7 @@ export type ErrorCallback = (error: JsonRpcError) => void;
 export class JsonRpcWebsocket {
   public jsonRpcVersion = '2.0';
 
-  private websocket: WebSocket;
+  private websocket: WebSocket | undefined;
   private closeDeferredPromise: DeferredPromise<CloseEvent>;
 
   private requestId = 0;
@@ -37,7 +37,11 @@ export class JsonRpcWebsocket {
     return this.websocket ? this.websocket.readyState : WebsocketReadyStates.CLOSED;
   }
 
-  constructor(private url: string, private requestTimeoutMs: number, private onError?: ErrorCallback) {
+  constructor(
+    private url: string,
+    private requestTimeoutMs: number,
+    private onError?: ErrorCallback,
+  ) {
     this.pendingRequests = {};
     this.rpcMethods = {};
   }
@@ -86,7 +90,10 @@ export class JsonRpcWebsocket {
       this.websocket.send(JSON.stringify(request));
     } catch (e) {
       // istanbul ignore next
-      return Promise.reject({ code: JsonRpcErrorCodes.INTERNAL_ERROR, message: `Internal error. ${e}` });
+      return Promise.reject({
+        code: JsonRpcErrorCodes.INTERNAL_ERROR,
+        message: `Internal error. ${this.getErrorMessage(e)}`,
+      });
     }
 
     return this.createPendingRequest(request);
@@ -107,7 +114,7 @@ export class JsonRpcWebsocket {
       this.websocket.send(JSON.stringify(request));
     } catch (e) {
       // istanbul ignore next
-      throw Error(e);
+      throw Error(this.getErrorMessage(e));
     }
   }
 
@@ -180,7 +187,7 @@ export class JsonRpcWebsocket {
       this.websocket.send(JSON.stringify(response));
     } catch (e) {
       // istanbul ignore next
-      throw Error(e);
+      throw Error(this.getErrorMessage(e));
     }
   }
 
@@ -228,7 +235,7 @@ export class JsonRpcWebsocket {
     try {
       requestParams = this.getRequestParams(method, request);
     } catch (error) {
-      this.handleError(JsonRpcErrorCodes.INVALID_PARAMS, error.message, request.id);
+      this.handleError(JsonRpcErrorCodes.INVALID_PARAMS, this.getErrorMessage(error), request.id);
       return;
     }
 
@@ -240,7 +247,7 @@ export class JsonRpcWebsocket {
     } catch (error) {
       this.handleError(
         JsonRpcErrorCodes.REQUEST_FAILED,
-        `Method '${request.method}' has thrown: '${error.message}'`,
+        `Method '${request.method}' has thrown: '${this.getErrorMessage(error)}'`,
         request.id,
       );
     }
@@ -258,7 +265,7 @@ export class JsonRpcWebsocket {
         }
         requestParams = request.params;
       } else if (request.params instanceof Object) {
-        const parameterNames = getParameterNames(method);
+        const parameterNames: string[] = getParameterNames(method);
 
         if (method.length !== Object.keys(request.params).length) {
           throw new Error(
@@ -326,7 +333,7 @@ export class JsonRpcWebsocket {
     }
   }
 
-  private createPendingRequest(request): Promise<JsonRpcResponse> {
+  private createPendingRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     const response = new DeferredPromise<JsonRpcResponse>();
     this.pendingRequests[request.id] = {
       request,
@@ -372,5 +379,10 @@ export class JsonRpcWebsocket {
 
   private hasProperty(object: unknown, propertyName: string): boolean {
     return !!Object.prototype.hasOwnProperty.call(object, propertyName);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    // istanbul ignore next
+    return error instanceof Error ? error?.message : JSON.stringify(error);
   }
 }
