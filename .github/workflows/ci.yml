@@ -13,7 +13,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  build:
+  verify:
+    name: Build and verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
