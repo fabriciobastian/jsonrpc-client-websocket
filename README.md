@@ -131,3 +131,9 @@ Tests live alongside the source and are excluded from build output.
 
 These tooling requirements apply to development only. The published library still
 targets ES2020 and has no runtime dependencies.
+
+## Publishing
+
+Releases are staged through GitHub Actions using
+[npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC).
+A maintainer approves each staged package on npm before it becomes publicly available.
