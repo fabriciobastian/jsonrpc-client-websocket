@@ -15,6 +15,12 @@ interface PendingRequest {
   timeout: number;
 }
 
+interface RegisteredMethod {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  callback: (...args: any[]) => any;
+  parameterNames?: readonly string[];
+}
+
 export type ErrorCallback = (error: JsonRpcError) => void;
 
 export class JsonRpcWebsocket {
@@ -29,8 +35,7 @@ export class JsonRpcWebsocket {
   };
 
   private rpcMethods: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [name: string]: (...args: any) => any;
+    [name: string]: RegisteredMethod;
   };
 
   public get state(): WebsocketReadyStates {
@@ -65,9 +70,24 @@ export class JsonRpcWebsocket {
     return this.closeDeferredPromise.asPromise();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public on(methodName: string, callback: (...args: any[]) => any): void {
-    this.rpcMethods[methodName.toLowerCase()] = callback; // case-insensitive!
+  /**
+   * Registers a callback, optionally declaring its public parameter names in argument order.
+   * Explicit names also determine the expected argument count, independently of the callback's signature.
+   */
+  public on(
+    methodName: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback: (...args: any[]) => any,
+    parameterNames?: readonly string[],
+  ): void {
+    if (parameterNames && new Set(parameterNames).size !== parameterNames.length) {
+      throw new Error('Parameter names must be unique');
+    }
+
+    this.rpcMethods[methodName.toLowerCase()] = {
+      callback,
+      parameterNames: parameterNames?.slice(),
+    }; // case-insensitive!
   }
 
   public off(methodName: string): void {
@@ -238,7 +258,8 @@ export class JsonRpcWebsocket {
     }
 
     try {
-      const result = method(...requestParams);
+      const { callback } = method;
+      const result = callback(...requestParams);
       if (request.id) {
         this.respondOk(request.id, result);
       }
@@ -252,43 +273,41 @@ export class JsonRpcWebsocket {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getRequestParams(method: (...args: any) => any, request: JsonRpcRequest): any[] {
-    let requestParams = [];
-    if (request.params) {
-      if (request.params instanceof Array) {
-        if (method.length !== request.params.length) {
-          throw new Error(
-            `Invalid parameters. Method '${request.method}' expects ${method.length} parameters, but got ${request.params.length}`,
-          );
-        }
-        requestParams = request.params;
-      } else if (request.params instanceof Object) {
-        const parameterNames: string[] = getParameterNames(method);
-
-        if (method.length !== Object.keys(request.params).length) {
-          throw new Error(
-            `Invalid parameters. Method '${
-              request.method
-            }' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`,
-          );
-        }
-
-        parameterNames.forEach((paramName) => {
-          const paramValue = request.params[paramName];
-          if (paramValue === undefined) {
-            throw new Error(
-              `Invalid parameters. Method '${
-                request.method
-              }' expects parameters [${parameterNames}], but got [${Object.keys(request.params)}]`,
-            );
-          }
-          requestParams.push(paramValue);
-        });
-      } else {
-        throw new Error(`Invalid parameters. Expected array or object, but got ${typeof request.params}`);
-      }
+  private getRequestParams(method: RegisteredMethod, request: JsonRpcRequest): any[] {
+    if (!request.params && method.parameterNames === undefined) {
+      return [];
     }
-    return requestParams;
+
+    const params = request.params === undefined ? [] : request.params;
+    const parameterCount = method.parameterNames?.length ?? method.callback.length;
+
+    if (params instanceof Array) {
+      if (parameterCount !== params.length) {
+        throw new Error(
+          `Invalid parameters. Method '${request.method}' expects ${parameterCount} parameters, but got ${params.length}`,
+        );
+      }
+      return params;
+    }
+
+    if (params instanceof Object) {
+      const parameterNames = method.parameterNames ?? getParameterNames(method.callback);
+      const requestParameterNames = Object.keys(params);
+      const invalidParametersMessage = `Invalid parameters. Method '${request.method}' expects parameters [${parameterNames}], but got [${requestParameterNames}]`;
+
+      if (parameterCount !== requestParameterNames.length) {
+        throw new Error(invalidParametersMessage);
+      }
+
+      return parameterNames.map((paramName) => {
+        if (!this.hasProperty(params, paramName)) {
+          throw new Error(invalidParametersMessage);
+        }
+        return params[paramName];
+      });
+    }
+
+    throw new Error(`Invalid parameters. Expected array or object, but got ${typeof params}`);
   }
 
   private handleResponse(response: JsonRpcResponse): void {

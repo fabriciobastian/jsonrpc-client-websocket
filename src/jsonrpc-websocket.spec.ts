@@ -268,6 +268,168 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     await expect(server).toReceiveMessage(createOkResponse(6));
   });
 
+  describe('with explicit parameter names', () => {
+    it.each([
+      { description: 'named parameters in reverse key order', params: { b: 2, a: 5 } },
+      { description: 'positional parameters', params: [5, 2] },
+    ])('should map $description to callback argument order', async ({ params }) => {
+      websocket.on('subtract', (x: number, y: number) => x - y, ['a', 'b']);
+
+      server.send(createRequest('subtract', params, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(3));
+    });
+
+    it.each([
+      { description: 'a rest callback', callback: (...values: number[]) => values[0] - values[1], result: 3 },
+      { description: 'a default argument', callback: (x: number, y = 0) => x - y, result: 3 },
+      { description: 'a removed unused argument', callback: (x: number) => x, result: 5 },
+    ])('should use declared argument count for $description', async ({ callback, result }) => {
+      websocket.on('subtract', callback, ['a', 'b']);
+
+      server.send(createRequest('subtract', { b: 2, a: 5 }, requestId));
+      await expect(server).toReceiveMessage(createOkResponse(result));
+
+      server.send(createRequest('subtract', [5, 2], requestId));
+      await expect(server).toReceiveMessage(createOkResponse(result));
+    });
+
+    it('should copy parameter names so later mutations do not change a registration', async () => {
+      const parameterNames = ['a', 'b'];
+      websocket.on('subtract', (x: number, y: number) => x - y, parameterNames);
+      parameterNames.reverse();
+      parameterNames.push('c');
+
+      server.send(createRequest('subtract', { b: 2, a: 5 }, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(3));
+    });
+
+    it('should accept readonly parameter names', async () => {
+      websocket.on('subtract', (x: number, y: number) => x - y, ['a', 'b'] as const);
+
+      server.send(createRequest('subtract', { b: 2, a: 5 }, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(3));
+    });
+
+    it.each([
+      { description: 'inferred names', parameterNames: undefined },
+      { description: 'explicit names', parameterNames: [] },
+    ])('should preserve unbound callback invocation with $description', async ({ parameterNames }) => {
+      websocket.on(
+        'unbound',
+        function (this: unknown) {
+          return this === undefined;
+        },
+        parameterNames,
+      );
+
+      server.send(createRequest('unbound', undefined, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(true));
+    });
+
+    it.each([
+      { description: 'omitted parameters', params: undefined },
+      { description: 'an empty positional array', params: [] },
+      { description: 'an empty named object', params: {} },
+    ])('should support an explicit empty list with $description', async ({ params }) => {
+      websocket.on('ready', () => 'ready', []);
+
+      server.send(createRequest('ready', params, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse('ready'));
+    });
+
+    it.each([
+      { description: 'a missing parameter', params: { a: 5 } },
+      { description: 'an extra parameter', params: { a: 5, b: 2, c: 1 } },
+      { description: 'an incorrect parameter name', params: { a: 5, c: 2 } },
+      { description: 'callback names instead of public names', params: { x: 5, y: 2 } },
+    ])('should reject named calls with $description', async ({ params }) => {
+      websocket.on('subtract', (x: number, y: number) => x - y, ['a', 'b']);
+
+      server.send(createRequest('subtract', params, requestId));
+
+      await expect(server).toReceiveMessage(
+        createErrorResponse(
+          JsonRpcErrorCodes.INVALID_PARAMS,
+          `Invalid parameters. Method 'subtract' expects parameters [a,b], but got [${Object.keys(params)}]`,
+        ),
+      );
+    });
+
+    it.each([
+      { description: 'omitted parameters', params: undefined, count: 0 },
+      { description: 'too few positional parameters', params: [5], count: 1 },
+      { description: 'too many positional parameters', params: [5, 2, 1], count: 3 },
+    ])('should reject $description using the declared argument count', async ({ params, count }) => {
+      websocket.on('subtract', (...values: number[]) => values[0] - values[1], ['a', 'b']);
+
+      server.send(createRequest('subtract', params, requestId));
+
+      await expect(server).toReceiveMessage(
+        createErrorResponse(
+          JsonRpcErrorCodes.INVALID_PARAMS,
+          `Invalid parameters. Method 'subtract' expects 2 parameters, but got ${count}`,
+        ),
+      );
+    });
+
+    it('should reject duplicate names without replacing an existing registration', async () => {
+      websocket.on('subtract', (x: number, y: number) => x - y, ['a', 'b']);
+
+      expect(() => websocket.on('subtract', () => 0, ['a', 'a'])).toThrow('Parameter names must be unique');
+
+      server.send(createRequest('subtract', { b: 2, a: 5 }, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(3));
+    });
+
+    it('should require public parameter names to be present on the request object', async () => {
+      websocket.on('echo', (x: unknown) => x, ['toString']);
+
+      server.send(createRequest('echo', { other: 1 }, requestId));
+
+      await expect(server).toReceiveMessage(
+        createErrorResponse(
+          JsonRpcErrorCodes.INVALID_PARAMS,
+          "Invalid parameters. Method 'echo' expects parameters [toString], but got [other]",
+        ),
+      );
+    });
+
+    it('should replace inferred names with explicit names when a method is registered again', async () => {
+      websocket.on('subtract', (x: number, y: number) => x + y);
+      websocket.on('SUBTRACT', (x: number, y: number) => x - y, ['a', 'b']);
+
+      server.send(createRequest('subtract', { b: 2, a: 5 }, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(3));
+    });
+
+    it('should restore inference when a method is registered again without explicit names', async () => {
+      websocket.on('subtract', (x: number, y: number) => x + y, ['a', 'b']);
+      websocket.on('SUBTRACT', (x: number, y: number) => x - y);
+
+      server.send(createRequest('subtract', { y: 2, x: 5 }, requestId));
+
+      await expect(server).toReceiveMessage(createOkResponse(3));
+    });
+
+    it('should unregister a method with explicit names case-insensitively', async () => {
+      websocket.on('SUBTRACT', (x: number, y: number) => x - y, ['a', 'b']);
+      websocket.off('subtract');
+
+      server.send(createRequest('subtract', { b: 2, a: 5 }, requestId));
+
+      await expect(server).toReceiveMessage(
+        createErrorResponse(JsonRpcErrorCodes.METHOD_NOT_FOUND, "Method 'subtract' was not found"),
+      );
+    });
+  });
+
   it('should call the registered method with boolean named params and respond the request', async () => {
     const request = createRequest('and', { b: true, a: false }, requestId);
     const expectedResponse = createOkResponse(false);

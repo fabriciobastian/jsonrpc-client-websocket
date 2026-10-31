@@ -74,30 +74,36 @@ The defined RPC methods can also be called with both positional and named parame
 
 ### Minification/Obfuscation
 
-When using code minification/obfuscation the parameter names may change, which can
-cause calls using named parameters to fail. To mitigate this you can do one or a
-combination of the following:
-- do not minify/obfuscate the code where `on` is used, so the function registration does not get modified
-- use positional parameters
-- register functions as following:
+For code that will be minified or obfuscated, pass the public parameter names as
+the optional third argument to `on`:
 
 ```typescript
-websocket.on('sum', (params: { a: number; b: number }) => {
-  return params.a + params.b;
-});
+websocket.on('subtract', (x: number, y: number) => x - y, ['a', 'b']);
 ```
 
-and then call the function using positional parameters using the object:
+The list follows the callback's argument order: `a` maps to `x`, and `b` maps to `y`.
+The order of keys in the request object does not matter:
 
 ```typescript
-websocket.call('sum', [{ a: 1, b: 2 }])
+websocket.call('subtract', { b: 2, a: 5 })
   .then((response) => {
-    // handle response
+    // response.result is 3
   })
   .catch((error) => {
     // handle error
   });
 ```
+
+Positional calls such as `websocket.call('subtract', [5, 2])` also work. The explicit
+list defines both the parameter order and the required argument count, even if
+minification renames or removes unused callback parameters. Names must be unique;
+use an empty list for a method that takes no arguments. The list is copied when
+the method is registered.
+
+Without the third argument, existing registrations continue to infer named
+parameters from the callback's source. Those names may change during minification
+or obfuscation, so use explicit names for named calls in production bundles.
+If property mangling is enabled, preserve the public keys in request objects too.
 
 ## Remove RPC method
 
