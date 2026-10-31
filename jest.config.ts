@@ -6,10 +6,10 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.(t|j)sx?$': 'ts-jest',
   },
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
+  testMatch: ['<rootDir>/src/**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverage: true,
-  collectCoverageFrom: ['src/**/!(index).{ts,tsx}'],
+  collectCoverageFrom: ['src/**/!(index).{ts,tsx}', '!src/**/*.spec.{ts,tsx}'],
   coverageReporters: ['html', 'json'],
   testEnvironment: "jsdom",
   coverageThreshold: {

@@ -1,4 +1,4 @@
-import { getParameterNames } from '../get-parameter-names';
+import { getParameterNames } from './get-parameter-names';
 
 describe('getParameterNames', () => {
   it.each<{ description: string; callback: (...args: never[]) => unknown; expected: string[] }>([

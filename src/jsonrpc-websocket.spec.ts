@@ -1,7 +1,7 @@
-import { ErrorCallback, JsonRpcWebsocket, WebsocketReadyStates } from '../jsonrpc-websocket';
+import { ErrorCallback, JsonRpcWebsocket, WebsocketReadyStates } from './jsonrpc-websocket';
 import { WS } from 'jest-websocket-mock';
-import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from '../jsonrpc.model';
-import { DeferredPromise } from '../deferred-promise';
+import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from './jsonrpc.model';
+import { DeferredPromise } from './deferred-promise';
 
 const testUrl = 'ws://localhost:1234';
 const requestTimeoutMs = 500;
