@@ -1,4 +1,4 @@
-import getParameterNames from 'get-parameter-names';
+import { getParameterNames } from './get-parameter-names';
 import { DeferredPromise } from './deferred-promise';
 import { JsonRpcError, JsonRpcErrorCodes, JsonRpcRequest, JsonRpcResponse } from './jsonrpc.model';
 
@@ -382,7 +382,21 @@ export class JsonRpcWebsocket {
   }
 
   private getErrorMessage(error: unknown): string {
-    // istanbul ignore next
-    return error instanceof Error ? error?.message : JSON.stringify(error);
+    try {
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const message = error.message;
+        if (typeof message === 'string') {
+          return message;
+        }
+      }
+
+      return JSON.stringify(error) ?? String(error);
+    } catch {
+      try {
+        return String(error);
+      } catch {
+        return 'Unknown error';
+      }
+    }
   }
 }

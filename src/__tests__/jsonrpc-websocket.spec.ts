@@ -249,6 +249,16 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     await expect(server).toReceiveMessage(expectedResponse);
   });
 
+  it('should call a single-parameter arrow with named params and respond the request', async () => {
+    // prettier-ignore
+    const double: (value: number) => number = value => value * 2;
+    websocket.on('double', double);
+
+    server.send(createRequest('double', { value: 3 }, requestId));
+
+    await expect(server).toReceiveMessage(createOkResponse(6));
+  });
+
   it('should call the registered method with boolean named params and respond the request', async () => {
     const request = createRequest('and', { b: true, a: false }, requestId);
     const expectedResponse = createOkResponse(false);
@@ -436,6 +446,18 @@ describe('JSON RPC 2.0 Websocket reports on error callback', () => {
   let callbackErrorPromise: DeferredPromise<boolean>;
   let callbackError: JsonRpcError;
 
+  const circularError: { self?: unknown } = {};
+  circularError.self = circularError;
+
+  const unprintableError = {
+    toJSON() {
+      throw new Error('Cannot serialize');
+    },
+    toString() {
+      throw new Error('Cannot convert to string');
+    },
+  };
+
   beforeEach(async () => {
     callbackErrorPromise = new DeferredPromise<boolean>();
     [server, websocket] = await createServerAndJsonSocketAndConnect((error: JsonRpcError) => {
@@ -446,6 +468,57 @@ describe('JSON RPC 2.0 Websocket reports on error callback', () => {
 
   afterEach(async () => {
     await closeSocketAndRestartServer(websocket);
+  });
+
+  it.each<{ description: string; error: unknown; message: string }>([
+    { description: 'an Error', error: new Error('Handler failed'), message: 'Handler failed' },
+    {
+      description: 'a circular object with a message',
+      error: { message: 'Circular failure', details: circularError },
+      message: 'Circular failure',
+    },
+    {
+      description: 'an object with a message and BigInt',
+      error: { message: 'BigInt failure', value: 1n },
+      message: 'BigInt failure',
+    },
+    { description: 'an empty message', error: { message: '', value: 1n }, message: '' },
+    { description: 'a serializable object', error: { reason: 'failure' }, message: '{"reason":"failure"}' },
+    { description: 'a non-string message', error: { message: 42 }, message: '{"message":42}' },
+    { description: 'a string', error: 'failure', message: '"failure"' },
+    { description: 'a number', error: 42, message: '42' },
+    { description: 'null', error: null, message: 'null' },
+    { description: 'undefined', error: undefined, message: 'undefined' },
+    { description: 'a symbol', error: Symbol('failure'), message: 'Symbol(failure)' },
+    { description: 'BigInt', error: 1n, message: '1' },
+    { description: 'an object containing BigInt', error: { value: 1n }, message: '[object Object]' },
+    { description: 'a circular object without a message', error: circularError, message: '[object Object]' },
+    {
+      description: 'an object with a throwing message getter',
+      error: {
+        get message() {
+          throw new Error('Cannot read message');
+        },
+      },
+      message: '[object Object]',
+    },
+    { description: 'an unprintable object', error: unprintableError, message: 'Unknown error' },
+  ])('should report and respond when a method throws $description', async ({ error, message }) => {
+    const request = createRequest('throwError', undefined, requestId);
+    const expectedResponse = createErrorResponse(
+      JsonRpcErrorCodes.REQUEST_FAILED,
+      `Method 'throwError' has thrown: '${message}'`,
+    );
+
+    websocket.on('throwError', () => {
+      throw error;
+    });
+
+    server.send(request);
+
+    await expect(server).toReceiveMessage(expectedResponse);
+    await expect(callbackErrorPromise.asPromise()).resolves.toBeTruthy();
+    expect(callbackError).toEqual(expectedResponse.error);
   });
 
   it('should report error if not a request nor a response (id is missing)', async () => {
