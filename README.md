@@ -1,4 +1,4 @@
-[![📦 Build](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/build.yml/badge.svg)](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/build.yml) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket)
+[![✅ Continuous Integration](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/ci.yml/badge.svg)](https://github.com/fabriciobastian/jsonrpc-client-websocket/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/fabriciobastian/jsonrpc-client-websocket)](https://choosealicense.com/licenses/mit/) [![NPM downloads](https://img.shields.io/npm/dt/jsonrpc-client-websocket.svg)](https://www.npmjs.com/package/jsonrpc-client-websocket)
 
 ![jsonrpc-client-websocket](https://raw.githubusercontent.com/fabriciobastian/jsonrpc-client-websocket/main/assets/jsonrpc-client-websocket-banner-light-small.png)
 
@@ -119,6 +119,7 @@ Use the Node.js version in `.nvmrc` and its bundled npm, then run:
 npm ci
 npm test
 npm run lint
+npm run format:check
 npm run build
 ```
 

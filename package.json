@@ -12,6 +12,7 @@
     "coverage": "npm test -- --coverage",
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "tsc --noEmit && eslint .",
     "prepublishOnly": "npm test && npm run lint",
     "prepare": "npm run build",
