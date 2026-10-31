@@ -5,8 +5,11 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "target": "es2020",
+    "lib": ["es2020", "dom", "es2022.error"],
     "module": "es2020",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "types": [],
     "declaration": true,
     "outDir": "./lib",
     "strictPropertyInitialization": false

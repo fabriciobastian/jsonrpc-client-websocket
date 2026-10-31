@@ -1,23 +1,21 @@
-import type { Config } from '@jest/types';
-
-// Sync object
-const config: Config.InitialOptions = {
+/** @type {import('jest').Config} */
+const config = {
   verbose: true,
   transform: {
-    '^.+\\.(t|j)sx?$': 'ts-jest',
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.spec.json' }],
   },
   testMatch: ['<rootDir>/src/**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverage: true,
   collectCoverageFrom: ['src/**/!(index).{ts,tsx}', '!src/**/*.spec.{ts,tsx}'],
   coverageReporters: ['html', 'json'],
-  testEnvironment: "jsdom",
+  testEnvironment: 'jsdom',
   coverageThreshold: {
     global: {
       branches: 100,
       functions: 100,
       statements: 100,
-      lines: 100
+      lines: 100,
     },
   },
 };

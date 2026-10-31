@@ -113,8 +113,7 @@ export class JsonRpcWebsocket {
     try {
       this.websocket.send(JSON.stringify(request));
     } catch (e) {
-      // istanbul ignore next
-      throw Error(this.getErrorMessage(e));
+      throw Error(this.getErrorMessage(e), { cause: e });
     }
   }
 
@@ -186,13 +185,12 @@ export class JsonRpcWebsocket {
     try {
       this.websocket.send(JSON.stringify(response));
     } catch (e) {
-      // istanbul ignore next
-      throw Error(this.getErrorMessage(e));
+      throw Error(this.getErrorMessage(e), { cause: e });
     }
   }
 
   private handleMessage(msg: string): void {
-    let data = null;
+    let data;
     try {
       data = JSON.parse(msg);
     } catch (e) /* istanbul ignore next */ {
@@ -231,7 +229,7 @@ export class JsonRpcWebsocket {
       return;
     }
 
-    let requestParams = [];
+    let requestParams;
     try {
       requestParams = this.getRequestParams(method, request);
     } catch (error) {

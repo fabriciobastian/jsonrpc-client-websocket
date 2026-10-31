@@ -104,3 +104,23 @@ websocket.call('sum', [{ a: 1, b: 2 }])
 ```typescript
 websocket.off('sum');
 ```
+
+## Development
+
+Use the Node.js version in `.nvmrc` and its bundled npm, then run:
+
+```sh
+npm ci
+npm test
+npm run lint
+npm run build
+```
+
+TypeScript checks both the library and tests. ESLint uses native flat configuration
+with TypeScript and Jest rules. TypeScript stays on the latest 6.0 patch supported
+by `typescript-eslint`; upgrading to TypeScript 7 requires its official support.
+Tests live alongside the source and are excluded from build output.
+`npm run update-all` respects peer dependency requirements when selecting updates.
+
+These tooling requirements apply to development only. The published library still
+targets ES2020 and has no runtime dependencies.

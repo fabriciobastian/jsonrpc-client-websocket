@@ -141,6 +141,15 @@ describe('JSON RPC 2.0 Websocket send requests', () => {
     await expect(server).toReceiveMessage(expectedRequest);
   });
 
+  it('should preserve the notification error message and its original cause', () => {
+    expect(() => websocket.notify('test', 1n)).toThrow(
+      expect.objectContaining({
+        message: 'Do not know how to serialize a BigInt',
+        cause: expect.any(TypeError),
+      }),
+    );
+  });
+
   it('should send request and timeout if no response is provided', async () => {
     const expectedRequest = createRequest('test', ['any'], requestId);
     const expectedError = createErrorResponse(
@@ -419,6 +428,19 @@ describe('JSON RPC 2.0 Websocket receive requests', () => {
     server.send(request);
 
     await expect(server).toReceiveMessage(expectedResponse);
+  });
+
+  it('should preserve the error response when a method returns an unserializable result', async () => {
+    websocket.on('returnBigInt', () => 1n);
+
+    server.send(createRequest('returnBigInt', undefined, requestId));
+
+    await expect(server).toReceiveMessage(
+      createErrorResponse(
+        JsonRpcErrorCodes.REQUEST_FAILED,
+        "Method 'returnBigInt' has thrown: 'Do not know how to serialize a BigInt'",
+      ),
+    );
   });
 
   it('should respond with an error if the called method throws an exception', async () => {

@@ -1,39 +1,19 @@
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
-import jest from 'eslint-plugin-jest';
-import tsParser from '@typescript-eslint/parser';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
-import { FlatCompat } from '@eslint/eslintrc';
-import eslintConfigPrettier from 'eslint-config-prettier';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import jest from 'eslint-plugin-jest';
+import tseslint from 'typescript-eslint';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
-
-export default [
+export default defineConfig([
+  globalIgnores(['lib/**', 'coverage/**']),
   js.configs.recommended,
-  ...compat.extends(
-    'plugin:@typescript-eslint/eslint-recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:jest/recommended',
-  ),
   {
-    ignores: ['**/node_modules', '**/lib', '**/.github'],
+    files: ['src/**/*.ts'],
+    extends: [tseslint.configs.recommended],
   },
   {
-    plugins: {
-      '@typescript-eslint': typescriptEslint,
-      jest,
-      eslintConfigPrettier,
-    },
-
-    languageOptions: {
-      parser: tsParser,
-    },
+    files: ['src/**/*.spec.ts'],
+    extends: [jest.configs['flat/recommended']],
   },
-];
+  eslintConfigPrettier,
+]);
